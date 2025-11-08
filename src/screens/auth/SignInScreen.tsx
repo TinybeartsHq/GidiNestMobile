@@ -10,7 +10,6 @@ import {
   Keyboard,
   ScrollView,
 } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,37 +23,21 @@ import {
   Divider,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { loginUser, clearError } from '../../redux/auth';
 import { theme } from '../../theme/theme';
-import type { RootState, AppDispatch } from '../../redux/types';
 
 const { width, height } = Dimensions.get('window');
 
 export default function SignInScreen() {
   const navigation = useNavigation();
-  const dispatch = useDispatch<AppDispatch>();
-  const { loading, error, isAuthenticated } = useSelector((state: RootState) => state.auth);
-
   const passwordInputRef = useRef<any>(null);
 
   const [loginType, setLoginType] = useState<'email' | 'phone'>('phone');
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
-
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      // @ts-ignore - navigation type will be configured
-      navigation.replace('Dashboard');
-    }
-  }, [isAuthenticated, navigation]);
-
-  React.useEffect(() => {
-    if (error) {
-      setSnackbarVisible(true);
-    }
-  }, [error]);
 
   const handleSignIn = useCallback(async () => {
     Keyboard.dismiss();
@@ -64,21 +47,17 @@ export default function SignInScreen() {
       return;
     }
 
-    const credentials = {
-      login_type: 'password' as const,
-      password,
-      login_with: loginType,
-      email: loginType === 'email' ? loginIdentifier.trim() : undefined,
-      phone: loginType === 'phone' ? loginIdentifier.trim() : undefined,
-    };
+    setLoading(true);
+    setError('');
 
-    const result = await dispatch(loginUser(credentials));
-
-    if (loginUser.fulfilled.match(result)) {
-      // @ts-ignore
+    setTimeout(() => {
+      setLoading(false);
+      setSnackbarVisible(true);
+      setError('');
+      // @ts-ignore - navigation typing configured elsewhere
       navigation.replace('Dashboard');
-    }
-  }, [dispatch, navigation, loginIdentifier, password, loginType]);
+    }, 1200);
+  }, [navigation, loginIdentifier, password, loginType]);
 
   const handleLoginTypeToggle = (value: string) => {
     if (value === 'email' || value === 'phone') {
@@ -90,7 +69,7 @@ export default function SignInScreen() {
 
   const handleDismissSnackbar = () => {
     setSnackbarVisible(false);
-    dispatch(clearError());
+    setError('');
   };
 
   const handleIdentifierSubmit = () => {
@@ -131,7 +110,7 @@ export default function SignInScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.contentContainer}>
-                <Surface style={styles.formCard} elevation={6}>
+                <Surface style={styles.formCard} elevation={4}>
                   <View style={styles.header}>
                     <Text variant="headlineMedium" style={styles.title}>
                       Sign in
@@ -321,7 +300,7 @@ export default function SignInScreen() {
           }}
           style={styles.snackbar}
         >
-          {error || 'An error occurred'}
+          {error || 'Welcome back! Redirecting…'}
         </Snackbar>
       </View>
     </TouchableWithoutFeedback>

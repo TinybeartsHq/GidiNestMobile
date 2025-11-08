@@ -9,13 +9,13 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ScrollView,
+  Modal,
+  Pressable,
 } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import RNPickerSelect, { type PickerStyle } from 'react-native-picker-select';
 import {
   Text,
   TextInput,
@@ -27,13 +27,6 @@ import {
   Divider,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  registerUser,
-  verifyOtp,
-  finalizeSignup,
-  clearAuthError,
-} from '../../redux/auth';
-import type { RootState, AppDispatch } from '../../redux/types';
 import { theme } from '../../theme/theme';
 
 const { width, height } = Dimensions.get('window');
@@ -79,11 +72,12 @@ const nigerianStates = [
 
 export default function SignUpScreen() {
   const navigation = useNavigation();
-  const dispatch = useDispatch<AppDispatch>();
-  const { loading, error, registrationMessage } = useSelector((state: RootState) => state.auth);
 
   const [currentStep, setCurrentStep] = useState<SignUpStep>('register');
   const [sessionId, setSessionId] = useState<string | null>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [registrationMessage, setRegistrationMessage] = useState('');
 
   // Register step state
   const [email, setEmail] = useState('');
@@ -99,6 +93,8 @@ export default function SignUpScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [state, setState] = useState('');
   const [address, setAddress] = useState('');
+  const [stateModalVisible, setStateModalVisible] = useState(false);
+  const statePickerRef = useRef<any>(null);
 
   // Password step state
   const [password, setPassword] = useState('');
@@ -113,27 +109,19 @@ export default function SignUpScreen() {
   const navigationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
-    if (error) {
-      setSnackbarMessage(error);
-      setSnackbarVisible(true);
-    }
-
     return () => {
       if (navigationTimerRef.current) {
         clearTimeout(navigationTimerRef.current);
       }
     };
-  }, [error]);
+  }, []);
 
   const handleDismissSnackbar = () => {
     setSnackbarVisible(false);
     setSnackbarMessage('');
-    dispatch(clearAuthError());
   };
 
   const handleRegister = useCallback(async () => {
-    dispatch(clearAuthError());
-
     if ((!email && !phoneNumber) || !firstName || !lastName) {
       Alert.alert('Incomplete', 'Phone/email, first name and last name are required.');
       return;
@@ -144,41 +132,20 @@ export default function SignUpScreen() {
       return;
     }
 
-    const registrationData: Record<string, string> = {
-      first_name: firstName,
-      last_name: lastName,
-    };
+    setLoading(true);
 
-    if (phoneNumber) {
-      registrationData.phone = phoneNumber;
-    }
-    if (email) {
-      registrationData.email = email;
-    }
-
-    const result = await dispatch(registerUser(registrationData as any));
-
-    if (registerUser.fulfilled.match(result)) {
-      const payload = result.payload as any;
-      const session =
-        payload?.data?.data?.session_id ??
-        payload?.data?.session_id ??
-        payload?.session_id ??
-        null;
-
-      if (session) {
-        setSessionId(session);
-      }
-
-      setSnackbarMessage(payload?.message || 'OTP sent. Please verify.');
+    setTimeout(() => {
+      const session = `session-${Date.now()}`;
+      setSessionId(session);
+      setRegistrationMessage('OTP sent successfully. Please verify.');
+      setSnackbarMessage('OTP sent successfully.');
       setSnackbarVisible(true);
       setCurrentStep('otp');
-    }
-  }, [dispatch, email, firstName, lastName, phoneNumber]);
+      setLoading(false);
+    }, 900);
+  }, [email, firstName, lastName, phoneNumber]);
 
   const handleVerifyOtp = useCallback(async () => {
-    dispatch(clearAuthError());
-
     if (!sessionId) {
       Alert.alert('Session expired', 'Please restart the registration process.');
       setCurrentStep('register');
@@ -190,18 +157,17 @@ export default function SignUpScreen() {
       return;
     }
 
-    const result = await dispatch(verifyOtp({ session_id: sessionId, otp }));
+    setLoading(true);
 
-    if (verifyOtp.fulfilled.match(result)) {
-      setSnackbarMessage(result.payload?.message || 'OTP verified. Continue to profile details.');
+    setTimeout(() => {
+      setSnackbarMessage('OTP verified. Continue to profile details.');
       setSnackbarVisible(true);
       setCurrentStep('profileDetails');
-    }
-  }, [dispatch, otp, sessionId]);
+      setLoading(false);
+    }, 800);
+  }, [otp, sessionId]);
 
   const handleCollectProfileDetails = useCallback(() => {
-    dispatch(clearAuthError());
-
     if (!dob) {
       Alert.alert('Missing date of birth', 'Please select your date of birth.');
       return;
@@ -218,11 +184,9 @@ export default function SignUpScreen() {
     }
 
     setCurrentStep('setPassword');
-  }, [address, dispatch, dob, state]);
+  }, [address, dob, state]);
 
   const handleFinalizeSignup = useCallback(async () => {
-    dispatch(clearAuthError());
-
     if (!sessionId) {
       Alert.alert('Session expired', 'Please restart the registration process.');
       setCurrentStep('register');
@@ -245,33 +209,26 @@ export default function SignUpScreen() {
     }
 
     setPasswordError('');
+    setLoading(true);
 
-    const payload: Record<string, string> = {
-      session_id: sessionId,
-      password,
-      country: 'Nigeria',
-      state,
-      address,
-    };
-
-    if (dob) {
-      payload.dob = dob.toISOString().split('T')[0];
-    }
-
-    const result = await dispatch(finalizeSignup(payload));
-
-    if (finalizeSignup.fulfilled.match(result)) {
-      setSnackbarMessage(result.payload?.message || 'Account created successfully.');
+    setTimeout(() => {
+      setLoading(false);
+      setSnackbarMessage('Account created successfully.');
       setSnackbarVisible(true);
 
       navigationTimerRef.current = setTimeout(() => {
         // @ts-ignore - stack param types configured elsewhere
         navigation.replace('Dashboard');
       }, 900);
-    }
-  }, [address, confirmPassword, dispatch, dob, navigation, password, sessionId, state]);
+    }, 1000);
+  }, [address, confirmPassword, navigation, password, sessionId, state, dob]);
 
   const formattedDob = useMemo(() => (dob ? dob.toISOString().split('T')[0] : ''), [dob]);
+
+  const handleSelectState = (value: string) => {
+    setState(value);
+    setStateModalVisible(false);
+  };
 
   const renderRegisterStep = () => (
     <View style={styles.formStep}>
@@ -487,28 +444,31 @@ export default function SignUpScreen() {
         />
       )}
 
+      {showDatePicker && Platform.OS === 'ios' && (
+        <Button
+          mode="outlined"
+          onPress={() => setShowDatePicker(false)}
+          style={styles.iosPickerButton}
+          textColor={theme.colors.primary}
+        >
+          Done
+        </Button>
+      )}
+
       <View style={styles.pickerContainer}>
         <Text style={styles.pickerFloatingLabel}>State / Province</Text>
-        <RNPickerSelect
-          onValueChange={(value) => {
-            setState(value);
+        <Pressable
+          style={styles.customPicker}
+          onPress={() => {
             Keyboard.dismiss();
+            setStateModalVisible(true);
           }}
-          items={nigerianStates.map((stateName) => ({ label: stateName, value: stateName }))}
-          placeholder={{ label: 'Select your state', value: '' }}
-          value={state}
-          style={pickerSelectStyles}
-          useNativeAndroidPickerStyle={false}
-          textInputProps={{
-            returnKeyType: 'next',
-          }}
-          touchableWrapperProps={{ activeOpacity: 0.7 }}
-          Icon={() => (
-            <View style={styles.pickerIcon} pointerEvents="none">
-              <Text style={styles.pickerIconText}>▼</Text>
-            </View>
-          )}
-        />
+        >
+          <Text style={[styles.customPickerValue, !state && styles.customPickerPlaceholder]}>
+            {state || 'Select your state'}
+          </Text>
+          <Text style={styles.customPickerIcon}>▼</Text>
+        </Pressable>
       </View>
 
       <TextInput
@@ -518,12 +478,11 @@ export default function SignUpScreen() {
         placeholder="House number, street, city"
         autoCapitalize="sentences"
         returnKeyType="done"
-        multiline
-        style={[styles.input, styles.multilineInput]}
+        style={styles.input}
         mode="outlined"
         outlineColor={theme.colors.border + '80'}
         activeOutlineColor={theme.colors.primary}
-        contentStyle={[styles.inputContent, styles.multilineContent]}
+        contentStyle={styles.inputContent}
       />
 
       <Button
@@ -725,44 +684,57 @@ export default function SignUpScreen() {
           }}
           style={styles.snackbar}
         >
-          {snackbarMessage || error || 'Something happened.'}
+          {snackbarMessage || 'Something happened.'}
         </Snackbar>
+
+        <Modal
+          visible={stateModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setStateModalVisible(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setStateModalVisible(false)}>
+            <View style={styles.pickerModalBackdrop} />
+          </TouchableWithoutFeedback>
+          <View style={styles.pickerModalContent}>
+            <View style={styles.pickerModalHandle} />
+            <Text style={styles.pickerModalTitle}>Select your state</Text>
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {nigerianStates.map((stateName) => {
+                const isSelected = state === stateName;
+                return (
+                  <Pressable
+                    key={stateName}
+                    style={[styles.pickerOption, isSelected && styles.pickerOptionSelected]}
+                    onPress={() => handleSelectState(stateName)}
+                  >
+                    <Text
+                      style={[
+                        styles.pickerOptionLabel,
+                        isSelected && styles.pickerOptionLabelSelected,
+                      ]}
+                    >
+                      {stateName}
+                    </Text>
+                    {isSelected ? <Text style={styles.pickerOptionCheck}>✓</Text> : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <Button
+              mode="text"
+              onPress={() => setStateModalVisible(false)}
+              style={styles.pickerModalClose}
+              labelStyle={styles.pickerModalCloseLabel}
+            >
+              Cancel
+            </Button>
+          </View>
+        </Modal>
       </View>
     </TouchableWithoutFeedback>
   );
 }
-
-const pickerSelectStyles: PickerStyle = {
-  inputIOS: {
-    fontSize: 16,
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-    paddingRight: 32,
-    borderWidth: 0,
-    color: '#000000',
-    backgroundColor: 'transparent',
-    height: 40,
-    lineHeight: 24,
-  },
-  inputAndroid: {
-    fontSize: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 0,
-    paddingRight: 32,
-    borderWidth: 0,
-    color: '#000000',
-    backgroundColor: 'transparent',
-    textAlignVertical: 'center',
-    includeFontPadding: false,
-  },
-  placeholder: {
-    color: theme.colors.textSecondary,
-    fontSize: 16,
-  },
-  viewContainer: {
-    width: '100%',
-  },
-};
 
 const styles = StyleSheet.create({
   container: {
@@ -789,6 +761,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.xl,
+    paddingBottom: theme.spacing.xl * 2,
     justifyContent: 'center',
   },
   formCard: {
@@ -865,17 +838,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: theme.borderRadius.md,
   },
-  multilineInput: {
-    minHeight: 90,
-  },
   inputContent: {
     fontSize: 16,
   },
-  multilineContent: {
-    paddingTop: theme.spacing.sm,
-  },
   helperText: {
     marginBottom: theme.spacing.sm,
+  },
+  iosPickerButton: {
+    alignSelf: 'flex-end',
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    borderColor: theme.colors.primary + '55',
   },
   primaryButton: {
     marginTop: theme.spacing.md,
@@ -915,19 +889,88 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
     fontSize: 13,
   },
-  pickerIcon: {
-    position: 'absolute',
-    right: 0,
-    height: '100%',
-    justifyContent: 'center',
-    paddingRight: theme.spacing.sm,
+  customPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? theme.spacing.sm : theme.spacing.sm + 2,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border + 'A0',
+    backgroundColor: '#FFFFFF',
   },
-  pickerIconText: {
-    fontSize: 18,
+  customPickerValue: {
+    fontSize: 16,
+    color: '#101828',
+  },
+  customPickerPlaceholder: {
+    color: '#8E8E93',
+  },
+  customPickerIcon: {
+    fontSize: 16,
     color: theme.colors.textSecondary,
   },
   snackbar: {
     marginBottom: theme.spacing.xl,
+  },
+  pickerModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  pickerModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: theme.borderRadius.xl,
+    borderTopRightRadius: theme.borderRadius.xl,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? theme.spacing.xl : theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+  },
+  pickerModalHandle: {
+    width: 48,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: theme.colors.border + '80',
+    alignSelf: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  pickerModalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
+  },
+  pickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.border + '33',
+  },
+  pickerOptionSelected: {
+    backgroundColor: theme.colors.primary + '0D',
+  },
+  pickerOptionLabel: {
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  pickerOptionLabelSelected: {
+    color: theme.colors.primary,
+    fontWeight: '600',
+  },
+  pickerOptionCheck: {
+    fontSize: 16,
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
+  pickerModalClose: {
+    marginTop: theme.spacing.md,
+  },
+  pickerModalCloseLabel: {
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
 });
 
