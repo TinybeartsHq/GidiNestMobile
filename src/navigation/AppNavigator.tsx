@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SignInScreen from '../screens/auth/SignInScreen';
+import SignUpScreen from '../screens/auth/SignUpScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import SavingsScreen from '../screens/savings/SavingsScreen';
 import CommunityScreen from '../screens/community/CommunityScreen';
@@ -22,6 +23,13 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="SignIn" 
           component={SignInScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Register"
+          component={SignUpScreen}
           options={{
             headerShown: false,
           }}
