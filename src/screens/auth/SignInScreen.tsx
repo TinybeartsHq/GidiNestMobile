@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,6 +6,9 @@ import {
   Platform,
   Alert,
   Dimensions,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ScrollView,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -28,6 +31,9 @@ export default function SignInScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error, isAuthenticated } = useSelector((state: RootState) => state.auth);
+
+  // Refs for inputs
+  const passwordInputRef = useRef<any>(null);
 
   // State for login type and identifier
   const [loginType, setLoginType] = useState<'email' | 'phone'>('phone');
@@ -52,6 +58,9 @@ export default function SignInScreen() {
   }, [error]);
 
   const handleSignIn = useCallback(async () => {
+    // Dismiss keyboard
+    Keyboard.dismiss();
+
     // Basic validation
     if (!loginIdentifier || !password) {
       Alert.alert('Error', 'Email/Phone number and password are required.');
@@ -79,6 +88,7 @@ export default function SignInScreen() {
     if (value === 'email' || value === 'phone') {
       setLoginType(value);
       setLoginIdentifier(''); // Clear identifier when toggling type
+      Keyboard.dismiss();
     }
   };
 
@@ -87,172 +97,216 @@ export default function SignInScreen() {
     dispatch(clearError());
   };
 
+  const handleIdentifierSubmit = () => {
+    // Move focus to password field when identifier is submitted
+    passwordInputRef.current?.focus();
+  };
+
+  const handlePasswordSubmit = () => {
+    // Submit form when password field is submitted
+    handleSignIn();
+  };
+
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
   return (
-    <View style={styles.container}>
-      {/* Background Image - Mother/Child theme */}
-      <Image
-        source={require('../../../assets/background/2147919267.jpg')}
-        style={styles.backgroundImage}
-        contentFit="cover"
-        priority="high"
-      />
-      
-      {/* Gradient Overlay */}
-      <View style={styles.overlay} />
+    <TouchableWithoutFeedback onPress={dismissKeyboard}>
+      <View style={styles.container}>
+        {/* Background Image - Mother/Child theme */}
+        <Image
+          source={require('../../../assets/background/2147919267.jpg')}
+          style={styles.backgroundImage}
+          contentFit="cover"
+          priority="high"
+        />
+        
+        {/* Gradient Overlay */}
+        <View style={styles.overlay} />
 
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <View style={styles.contentContainer}>
-            {/* Form Card - Centered */}
-            <View style={styles.formCard}>
-              <View style={styles.header}>
-                <Text variant="headlineMedium" style={styles.title}>
-                  Sign in
-                </Text>
-                <Text variant="bodySmall" style={styles.subtitle}>
-                  Welcome back! Sign in to continue
-                </Text>
-              </View>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.keyboardView}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          >
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+              scrollEnabled={Platform.OS === 'android'}
+            >
+              <View style={styles.contentContainer}>
+                {/* Form Card - Centered */}
+                <View style={styles.formCard}>
+                  <View style={styles.header}>
+                    <Text variant="headlineMedium" style={styles.title}>
+                      Sign in
+                    </Text>
+                    <Text variant="bodySmall" style={styles.subtitle}>
+                      Welcome back! Sign in to continue
+                    </Text>
+                  </View>
 
-              <View style={styles.form}>
-                {/* Login Type Toggle */}
-                <SegmentedButtons
-                  value={loginType}
-                  onValueChange={handleLoginTypeToggle}
-                  buttons={[
-                    {
-                      value: 'phone',
-                      label: 'Phone',
-                    },
-                    {
-                      value: 'email',
-                      label: 'Email',
-                    },
-                  ]}
-                  style={styles.segmentedButtons}
-                />
-
-                {/* Dynamic Login Identifier Field */}
-                <TextInput
-                  label={loginType === 'email' ? 'Email address' : 'Phone Number'}
-                  value={loginIdentifier}
-                  onChangeText={setLoginIdentifier}
-                  placeholder={
-                    loginType === 'email' ? 'Enter your email address' : '08098XXXXXXX'
-                  }
-                  keyboardType={loginType === 'email' ? 'email-address' : 'phone-pad'}
-                  autoCapitalize="none"
-                  style={styles.input}
-                  mode="outlined"
-                  outlineColor={theme.colors.border}
-                  activeOutlineColor={theme.colors.primary}
-                  contentStyle={styles.inputContent}
-                />
-
-                <TextInput
-                  label="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  right={
-                    <TextInput.Icon
-                      icon={showPassword ? 'eye-off' : 'eye'}
-                      onPress={() => setShowPassword(!showPassword)}
+                  <View style={styles.form}>
+                    {/* Login Type Toggle */}
+                    <SegmentedButtons
+                      value={loginType}
+                      onValueChange={handleLoginTypeToggle}
+                      buttons={[
+                        {
+                          value: 'phone',
+                          label: 'Phone',
+                        },
+                        {
+                          value: 'email',
+                          label: 'Email',
+                        },
+                      ]}
+                      style={styles.segmentedButtons}
                     />
-                  }
-                  style={styles.input}
-                  mode="outlined"
-                  outlineColor={theme.colors.border}
-                  activeOutlineColor={theme.colors.primary}
-                  contentStyle={styles.inputContent}
-                />
 
-                <Text
-                  variant="bodySmall"
-                  style={styles.forgotPassword}
-                  onPress={() => {
-                    // @ts-ignore
-                    navigation.navigate('ForgotPassword');
-                  }}
-                >
-                  Forgot password?
-                </Text>
+                    {/* Dynamic Login Identifier Field */}
+                    <TextInput
+                      label={loginType === 'email' ? 'Email address' : 'Phone Number'}
+                      value={loginIdentifier}
+                      onChangeText={setLoginIdentifier}
+                      placeholder={
+                        loginType === 'email' ? 'Enter your email address' : '08098XXXXXXX'
+                      }
+                      keyboardType={loginType === 'email' ? 'email-address' : 'phone-pad'}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete={loginType === 'email' ? 'email' : 'tel'}
+                      returnKeyType="next"
+                      onSubmitEditing={handleIdentifierSubmit}
+                      blurOnSubmit={false}
+                      style={styles.input}
+                      mode="outlined"
+                      outlineColor={theme.colors.border}
+                      activeOutlineColor={theme.colors.primary}
+                      contentStyle={styles.inputContent}
+                      textContentType={loginType === 'email' ? 'emailAddress' : 'telephoneNumber'}
+                    />
 
-                <Button
-                  mode="contained"
-                  onPress={handleSignIn}
-                  loading={loading}
-                  disabled={loading}
-                  style={styles.button}
-                  contentStyle={styles.buttonContent}
-                  buttonColor={theme.colors.primary}
-                  textColor="#FFFFFF"
-                >
-                  {loading ? 'Signing in...' : 'Sign in'}
-                </Button>
+                    <TextInput
+                      ref={passwordInputRef}
+                      label="Password"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="password"
+                      returnKeyType="done"
+                      onSubmitEditing={handlePasswordSubmit}
+                      right={
+                        <TextInput.Icon
+                          icon={showPassword ? 'eye-off' : 'eye'}
+                          onPress={() => setShowPassword(!showPassword)}
+                          forceTextInputFocus={false}
+                        />
+                      }
+                      style={styles.input}
+                      mode="outlined"
+                      outlineColor={theme.colors.border}
+                      activeOutlineColor={theme.colors.primary}
+                      contentStyle={styles.inputContent}
+                      textContentType="password"
+                    />
 
-                <View style={styles.registerContainer}>
-                  <Text variant="bodySmall" style={styles.registerText}>
-                    Don't have an account?{' '}
                     <Text
-                      style={styles.registerLink}
+                      variant="bodySmall"
+                      style={styles.forgotPassword}
                       onPress={() => {
+                        Keyboard.dismiss();
                         // @ts-ignore
-                        navigation.navigate('Register');
+                        navigation.navigate('ForgotPassword');
                       }}
                     >
-                      Register here
+                      Forgot password?
                     </Text>
-                  </Text>
-                </View>
 
-                <View style={styles.termsContainer}>
-                  <Text variant="bodySmall" style={styles.termsText}>
-                    By signing in, you agree to our{' '}
-                    <Text
-                      style={styles.link}
-                      onPress={() => {
-                        // @ts-ignore
-                        navigation.navigate('PrivacyPolicy');
-                      }}
+                    <Button
+                      mode="contained"
+                      onPress={handleSignIn}
+                      loading={loading}
+                      disabled={loading || !loginIdentifier || !password}
+                      style={styles.button}
+                      contentStyle={styles.buttonContent}
+                      buttonColor={theme.colors.primary}
+                      textColor="#FFFFFF"
+                      accessibilityLabel="Sign in"
+                      accessibilityHint="Press to sign in to your account"
                     >
-                      Privacy Policy
-                    </Text>{' '}
-                    and{' '}
-                    <Text
-                      style={styles.link}
-                      onPress={() => {
-                        // @ts-ignore
-                        navigation.navigate('TermsAndConditions');
-                      }}
-                    >
-                      Terms & Conditions
-                    </Text>
-                  </Text>
+                      {loading ? 'Signing in...' : 'Sign in'}
+                    </Button>
+
+                    <View style={styles.registerContainer}>
+                      <Text variant="bodySmall" style={styles.registerText}>
+                        Don't have an account?{' '}
+                        <Text
+                          style={styles.registerLink}
+                          onPress={() => {
+                            Keyboard.dismiss();
+                            // @ts-ignore
+                            navigation.navigate('Register');
+                          }}
+                        >
+                          Register here
+                        </Text>
+                      </Text>
+                    </View>
+
+                    <View style={styles.termsContainer}>
+                      <Text variant="bodySmall" style={styles.termsText}>
+                        By signing in, you agree to our{' '}
+                        <Text
+                          style={styles.link}
+                          onPress={() => {
+                            Keyboard.dismiss();
+                            // @ts-ignore
+                            navigation.navigate('PrivacyPolicy');
+                          }}
+                        >
+                          Privacy Policy
+                        </Text>{' '}
+                        and{' '}
+                        <Text
+                          style={styles.link}
+                          onPress={() => {
+                            Keyboard.dismiss();
+                            // @ts-ignore
+                            navigation.navigate('TermsAndConditions');
+                          }}
+                        >
+                          Terms & Conditions
+                        </Text>
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               </View>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={handleDismissSnackbar}
-        duration={4000}
-        action={{
-          label: 'Dismiss',
-          onPress: handleDismissSnackbar,
-        }}
-        style={styles.snackbar}
-      >
-        {error || 'An error occurred'}
-      </Snackbar>
-    </View>
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={handleDismissSnackbar}
+          duration={4000}
+          action={{
+            label: 'Dismiss',
+            onPress: handleDismissSnackbar,
+          }}
+          style={styles.snackbar}
+        >
+          {error || 'An error occurred'}
+        </Snackbar>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -277,11 +331,17 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    minHeight: height,
+  },
   contentContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.lg,
   },
   formCard: {
     backgroundColor: '#FFFFFF',
