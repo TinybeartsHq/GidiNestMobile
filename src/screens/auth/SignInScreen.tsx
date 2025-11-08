@@ -13,12 +13,15 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Text,
   TextInput,
   Button,
   SegmentedButtons,
   Snackbar,
+  Surface,
+  Divider,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { loginUser, clearError } from '../../redux/auth';
@@ -32,25 +35,21 @@ export default function SignInScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
-  // Refs for inputs
   const passwordInputRef = useRef<any>(null);
 
-  // State for login type and identifier
   const [loginType, setLoginType] = useState<'email' | 'phone'>('phone');
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
 
-  // Redirect to dashboard if already authenticated
   React.useEffect(() => {
     if (isAuthenticated) {
-      // @ts-ignore - navigation type will be set up properly
+      // @ts-ignore - navigation type will be configured
       navigation.replace('Dashboard');
     }
   }, [isAuthenticated, navigation]);
 
-  // Show snackbar when error changes
   React.useEffect(() => {
     if (error) {
       setSnackbarVisible(true);
@@ -58,10 +57,8 @@ export default function SignInScreen() {
   }, [error]);
 
   const handleSignIn = useCallback(async () => {
-    // Dismiss keyboard
     Keyboard.dismiss();
 
-    // Basic validation
     if (!loginIdentifier || !password) {
       Alert.alert('Error', 'Email/Phone number and password are required.');
       return;
@@ -71,14 +68,13 @@ export default function SignInScreen() {
       login_type: 'password' as const,
       password,
       login_with: loginType,
-      email: loginType === 'email' ? loginIdentifier : undefined,
-      phone: loginType === 'phone' ? loginIdentifier : undefined,
+      email: loginType === 'email' ? loginIdentifier.trim() : undefined,
+      phone: loginType === 'phone' ? loginIdentifier.trim() : undefined,
     };
 
     const result = await dispatch(loginUser(credentials));
-    
+
     if (loginUser.fulfilled.match(result)) {
-      // Navigation will happen automatically via useEffect
       // @ts-ignore
       navigation.replace('Dashboard');
     }
@@ -87,7 +83,7 @@ export default function SignInScreen() {
   const handleLoginTypeToggle = (value: string) => {
     if (value === 'email' || value === 'phone') {
       setLoginType(value);
-      setLoginIdentifier(''); // Clear identifier when toggling type
+      setLoginIdentifier('');
       Keyboard.dismiss();
     }
   };
@@ -98,12 +94,10 @@ export default function SignInScreen() {
   };
 
   const handleIdentifierSubmit = () => {
-    // Move focus to password field when identifier is submitted
     passwordInputRef.current?.focus();
   };
 
   const handlePasswordSubmit = () => {
-    // Submit form when password field is submitted
     handleSignIn();
   };
 
@@ -114,16 +108,16 @@ export default function SignInScreen() {
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <View style={styles.container}>
-        {/* Background Image - Mother/Child theme */}
         <Image
           source={require('../../../assets/background/2147919267.jpg')}
           style={styles.backgroundImage}
           contentFit="cover"
           priority="high"
         />
-        
-        {/* Gradient Overlay */}
-        <View style={styles.overlay} />
+        <LinearGradient
+          colors={['rgba(15, 23, 42, 0.55)', 'rgba(107, 20, 109, 0.18)']}
+          style={styles.overlay}
+        />
 
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
           <KeyboardAvoidingView
@@ -135,23 +129,19 @@ export default function SignInScreen() {
               contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
-              bounces={false}
-              scrollEnabled={Platform.OS === 'android'}
             >
               <View style={styles.contentContainer}>
-                {/* Form Card - Centered */}
-                <View style={styles.formCard}>
+                <Surface style={styles.formCard} elevation={6}>
                   <View style={styles.header}>
                     <Text variant="headlineMedium" style={styles.title}>
                       Sign in
                     </Text>
                     <Text variant="bodySmall" style={styles.subtitle}>
-                      Welcome back! Sign in to continue
+                      Access your dashboard in seconds
                     </Text>
                   </View>
 
                   <View style={styles.form}>
-                    {/* Login Type Toggle */}
                     <SegmentedButtons
                       value={loginType}
                       onValueChange={handleLoginTypeToggle}
@@ -165,16 +155,16 @@ export default function SignInScreen() {
                           label: 'Email',
                         },
                       ]}
+                      density="small"
                       style={styles.segmentedButtons}
                     />
 
-                    {/* Dynamic Login Identifier Field */}
                     <TextInput
                       label={loginType === 'email' ? 'Email address' : 'Phone Number'}
                       value={loginIdentifier}
                       onChangeText={setLoginIdentifier}
                       placeholder={
-                        loginType === 'email' ? 'Enter your email address' : '08098XXXXXXX'
+                        loginType === 'email' ? 'name@example.com' : '0809 876 5432'
                       }
                       keyboardType={loginType === 'email' ? 'email-address' : 'phone-pad'}
                       autoCapitalize="none"
@@ -185,7 +175,7 @@ export default function SignInScreen() {
                       blurOnSubmit={false}
                       style={styles.input}
                       mode="outlined"
-                      outlineColor={theme.colors.border}
+                      outlineColor={theme.colors.border + '80'}
                       activeOutlineColor={theme.colors.primary}
                       contentStyle={styles.inputContent}
                       textContentType={loginType === 'email' ? 'emailAddress' : 'telephoneNumber'}
@@ -211,7 +201,7 @@ export default function SignInScreen() {
                       }
                       style={styles.input}
                       mode="outlined"
-                      outlineColor={theme.colors.border}
+                      outlineColor={theme.colors.border + '80'}
                       activeOutlineColor={theme.colors.primary}
                       contentStyle={styles.inputContent}
                       textContentType="password"
@@ -238,15 +228,43 @@ export default function SignInScreen() {
                       contentStyle={styles.buttonContent}
                       buttonColor={theme.colors.primary}
                       textColor="#FFFFFF"
+                      icon="lock-outline"
                       accessibilityLabel="Sign in"
                       accessibilityHint="Press to sign in to your account"
                     >
-                      {loading ? 'Signing in...' : 'Sign in'}
+                      {loading ? 'Signing in...' : 'Sign in securely'}
                     </Button>
+
+                    <View style={styles.dividerRow}>
+                      <Divider style={styles.divider} bold />
+                      <Text style={styles.dividerLabel}>or continue with</Text>
+                      <Divider style={styles.divider} bold />
+                    </View>
+
+                    <View style={styles.socialButtonsRow}>
+                      <Button
+                        mode="outlined"
+                        icon="google"
+                        style={styles.socialButton}
+                        labelStyle={styles.socialLabel}
+                        onPress={() => Alert.alert('Coming soon', 'Google sign-in coming soon.')}
+                      >
+                        Google
+                      </Button>
+                      <Button
+                        mode="outlined"
+                        icon="apple"
+                        style={styles.socialButton}
+                        labelStyle={styles.socialLabel}
+                        onPress={() => Alert.alert('Coming soon', 'Apple sign-in coming soon.')}
+                      >
+                        Apple
+                      </Button>
+                    </View>
 
                     <View style={styles.registerContainer}>
                       <Text variant="bodySmall" style={styles.registerText}>
-                        Don't have an account?{' '}
+                        Don&apos;t have an account?{' '}
                         <Text
                           style={styles.registerLink}
                           onPress={() => {
@@ -255,7 +273,7 @@ export default function SignInScreen() {
                             navigation.navigate('Register');
                           }}
                         >
-                          Register here
+                          Create one now
                         </Text>
                       </Text>
                     </View>
@@ -287,7 +305,7 @@ export default function SignInScreen() {
                       </Text>
                     </View>
                   </View>
-                </View>
+                </Surface>
               </View>
             </ScrollView>
           </KeyboardAvoidingView>
@@ -313,6 +331,7 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: theme.colors.primary,
   },
   backgroundImage: {
     position: 'absolute',
@@ -323,7 +342,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: width,
     height: height,
-    backgroundColor: 'rgba(107, 20, 109, 0.65)', // Brand color overlay
   },
   safeArea: {
     flex: 1,
@@ -335,37 +353,32 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     minHeight: height,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
   },
   contentContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    width: '100%',
+    paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.xl,
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.lg,
   },
   formCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: theme.borderRadius.xl + 4,
-    padding: theme.spacing.lg,
     width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
+    maxWidth: 420,
+    borderRadius: theme.borderRadius.xl + 6,
+    padding: theme.spacing.xl,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '14',
   },
   header: {
     alignItems: 'center',
     marginBottom: theme.spacing.lg,
   },
   title: {
-    fontWeight: 'bold',
-    marginBottom: theme.spacing.xs,
+    fontWeight: '800',
     color: theme.colors.primary,
+    marginBottom: theme.spacing.xs,
   },
   subtitle: {
     color: theme.colors.textSecondary,
@@ -376,10 +389,13 @@ const styles = StyleSheet.create({
   },
   segmentedButtons: {
     marginBottom: theme.spacing.md,
+    backgroundColor: '#F4F4F6',
+    borderRadius: theme.borderRadius.lg,
   },
   input: {
     marginBottom: theme.spacing.md,
     backgroundColor: '#FFFFFF',
+    borderRadius: theme.borderRadius.md,
   },
   inputContent: {
     fontSize: 16,
@@ -393,16 +409,48 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.lg,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 4,
   },
   buttonContent: {
-    paddingVertical: theme.spacing.sm + 4,
+    paddingVertical: theme.spacing.md,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginVertical: theme.spacing.md,
+  },
+  divider: {
+    flex: 1,
+    backgroundColor: theme.colors.border + '66',
+  },
+  dividerLabel: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  socialButtonsRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  socialButton: {
+    flex: 1,
+    borderRadius: theme.borderRadius.md,
+    borderColor: theme.colors.border + '80',
+  },
+  socialLabel: {
+    fontSize: 14,
   },
   registerContainer: {
     alignItems: 'center',
     marginTop: theme.spacing.sm,
-    marginBottom: theme.spacing.xs,
   },
   registerText: {
     color: theme.colors.textSecondary,
@@ -415,7 +463,7 @@ const styles = StyleSheet.create({
   termsContainer: {
     alignItems: 'center',
     paddingHorizontal: theme.spacing.sm,
-    marginTop: theme.spacing.sm,
+    marginTop: theme.spacing.md,
   },
   termsText: {
     textAlign: 'center',
