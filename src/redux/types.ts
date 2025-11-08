@@ -1,16 +1,9 @@
 // Redux types and interfaces
+import { store } from './store';
 
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-}
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
 
-export interface AuthState {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-}
-
-// Add more types as needed
+// Re-export from store for convenience
+export { type RootState, type AppDispatch } from './store';
 

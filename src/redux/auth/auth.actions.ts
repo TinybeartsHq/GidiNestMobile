@@ -1,4 +1,4 @@
-export { default as authReducer } from './authSlice';
+// Re-export actions and thunks for convenience
 export {
   loginUser,
   checkAuthStatus,
@@ -14,6 +14,7 @@ export {
   clearAuthError,
   setAuthenticated,
 } from './authSlice';
+
 export type {
   LoginCredentials,
   RegisterData,
@@ -21,5 +22,6 @@ export type {
   EmailActivationData,
   FinalizeSignupData,
   PasswordResetData,
-  AuthState,
 } from './authSlice';
+
+

@@ -1,6 +1,10 @@
+import { MD3LightTheme } from 'react-native-paper';
+
 export const theme = {
   colors: {
-    primary: '#007AFF',
+    primary: '#6b146d', // Brand purple
+    primaryLight: '#8B3A8D',
+    primaryDark: '#4D0F4F',
     secondary: '#5856D6',
     success: '#34C759',
     warning: '#FF9500',
@@ -10,6 +14,7 @@ export const theme = {
     text: '#000000',
     textSecondary: '#8E8E93',
     border: '#C6C6C8',
+    overlay: 'rgba(107, 20, 109, 0.7)',
   },
   spacing: {
     xs: 4,
@@ -48,5 +53,24 @@ export const theme = {
   },
 };
 
+// React Native Paper theme
+export const paperTheme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: theme.colors.primary,
+    primaryContainer: theme.colors.primaryLight,
+    secondary: theme.colors.secondary,
+    error: theme.colors.error,
+    background: theme.colors.background,
+    surface: theme.colors.surface,
+    onPrimary: '#FFFFFF',
+    onSecondary: '#FFFFFF',
+    onBackground: theme.colors.text,
+    onSurface: theme.colors.text,
+  },
+};
+
 export type Theme = typeof theme;
+
 
