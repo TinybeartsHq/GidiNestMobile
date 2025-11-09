@@ -18,6 +18,13 @@ export const borderRadius = {
   xl: 16,
 };
 
+const fontFamilyFor = (weight: 'Regular' | 'Medium' | 'SemiBold' | 'Bold' | 'ExtraBold') =>
+  Platform.select({
+    ios: `NeuzeitGro-${weight}`,
+    android: `NeuzeitGro-${weight}`,
+    default: `NeuzeitGro-${weight}`,
+  });
+
 export const typography = {
   h1: {
     fontSize: 32,
@@ -45,13 +52,6 @@ export const typography = {
     fontFamily: fontFamilyFor('Regular') as const,
   },
 };
-
-const fontFamilyFor = (weight: 'Regular' | 'Medium' | 'SemiBold' | 'Bold' | 'ExtraBold') =>
-  Platform.select({
-    ios: `NeuzeitGro-${weight}`,
-    android: `NeuzeitGro-${weight}`,
-    default: `NeuzeitGro-${weight}`,
-  });
 
 const fontConfig = {
   displayLarge: { fontFamily: fontFamilyFor('ExtraBold'), fontWeight: '700' as const },
