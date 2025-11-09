@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -23,6 +23,7 @@ import {
   Divider,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 
 const { width, height } = Dimensions.get('window');
@@ -38,6 +39,78 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const { mode, palette } = useThemeMode();
+  const isDark = mode === 'dark';
+
+  const borderNeutral = isDark ? 'rgba(148, 163, 184, 0.42)' : 'rgba(148, 163, 184, 0.45)';
+  const cardBackground = isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255,255,255,0.92)';
+  const segmentedBackground = isDark ? 'rgba(15, 23, 42, 0.6)' : '#F4F4F6';
+  const textSecondaryColor = isDark ? palette.textSecondary : theme.colors.textSecondary;
+  const overlayColors: [string, string] = isDark
+    ? ['rgba(2, 6, 23, 0.82)', 'rgba(76, 29, 149, 0.38)']
+    : ['rgba(15, 23, 42, 0.55)', 'rgba(107, 20, 109, 0.18)'];
+
+  const dynamicStyles = useMemo(
+    () => ({
+      container: {
+        backgroundColor: palette.background,
+      },
+      formCard: {
+        backgroundColor: cardBackground,
+        borderColor: isDark ? 'rgba(148, 163, 184, 0.32)' : 'rgba(107, 20, 109, 0.12)',
+      },
+      title: {
+        color: palette.primary,
+      },
+      subtitle: {
+        color: textSecondaryColor,
+      },
+      segmentedButtons: {
+        backgroundColor: segmentedBackground,
+      },
+      input: {
+        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.65)' : '#FFFFFF',
+      },
+      forgotPassword: {
+        color: palette.primary,
+      },
+      divider: {
+        backgroundColor: isDark ? 'rgba(148,163,184,0.32)' : theme.colors.border + '66',
+      },
+      dividerLabel: {
+        color: textSecondaryColor,
+      },
+      socialButton: {
+        borderColor: borderNeutral,
+      },
+      registerText: {
+        color: textSecondaryColor,
+      },
+      registerLink: {
+        color: palette.primary,
+      },
+      termsText: {
+        color: textSecondaryColor,
+      },
+      link: {
+        color: palette.primary,
+      },
+      snackbar: {
+        backgroundColor: isDark ? palette.surface : undefined,
+      },
+    }),
+    [borderNeutral, cardBackground, isDark, palette.primary, palette.surface, palette.background, segmentedBackground, textSecondaryColor]
+  );
+
+  const inputTheme = useMemo(
+    () => ({
+      colors: {
+        text: isDark ? '#F8FAFC' : '#0F172A',
+        placeholder: isDark ? '#94A3B8' : '#94A3B8',
+      },
+    }),
+    [isDark]
+  );
 
   const handleSignIn = useCallback(async () => {
     Keyboard.dismiss();
@@ -86,7 +159,7 @@ export default function SignInScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
-      <View style={styles.container}>
+      <View style={[styles.container, dynamicStyles.container]}>
         <Image
           source={require('../../../assets/background/2147919267.jpg')}
           style={styles.backgroundImage}
@@ -94,7 +167,7 @@ export default function SignInScreen() {
           priority="high"
         />
         <LinearGradient
-          colors={['rgba(15, 23, 42, 0.55)', 'rgba(107, 20, 109, 0.18)']}
+          colors={overlayColors}
           style={styles.overlay}
         />
 
@@ -110,12 +183,12 @@ export default function SignInScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.contentContainer}>
-                <Surface style={styles.formCard} elevation={4}>
+                <Surface style={[styles.formCard, dynamicStyles.formCard]} elevation={4}>
                   <View style={styles.header}>
-                    <Text variant="headlineMedium" style={styles.title}>
+                    <Text variant="headlineMedium" style={[styles.title, dynamicStyles.title]}>
                       Sign in
                     </Text>
-                    <Text variant="bodySmall" style={styles.subtitle}>
+                    <Text variant="bodySmall" style={[styles.subtitle, dynamicStyles.subtitle]}>
                       Access your dashboard in seconds
                     </Text>
                   </View>
@@ -135,7 +208,7 @@ export default function SignInScreen() {
                         },
                       ]}
                       density="small"
-                      style={styles.segmentedButtons}
+                      style={[styles.segmentedButtons, dynamicStyles.segmentedButtons]}
                     />
 
                     <TextInput
@@ -152,10 +225,11 @@ export default function SignInScreen() {
                       returnKeyType="next"
                       onSubmitEditing={handleIdentifierSubmit}
                       blurOnSubmit={false}
-                      style={styles.input}
+                      style={[styles.input, dynamicStyles.input]}
                       mode="outlined"
-                      outlineColor={theme.colors.border + '80'}
-                      activeOutlineColor={theme.colors.primary}
+                      outlineColor={borderNeutral}
+                      activeOutlineColor={palette.primary}
+                      theme={inputTheme}
                       contentStyle={styles.inputContent}
                       textContentType={loginType === 'email' ? 'emailAddress' : 'telephoneNumber'}
                     />
@@ -178,17 +252,18 @@ export default function SignInScreen() {
                           forceTextInputFocus={false}
                         />
                       }
-                      style={styles.input}
+                      style={[styles.input, dynamicStyles.input]}
                       mode="outlined"
-                      outlineColor={theme.colors.border + '80'}
-                      activeOutlineColor={theme.colors.primary}
+                      outlineColor={borderNeutral}
+                      activeOutlineColor={palette.primary}
+                      theme={inputTheme}
                       contentStyle={styles.inputContent}
                       textContentType="password"
                     />
 
                     <Text
                       variant="bodySmall"
-                      style={styles.forgotPassword}
+                      style={[styles.forgotPassword, dynamicStyles.forgotPassword]}
                       onPress={() => {
                         Keyboard.dismiss();
                         // @ts-ignore
@@ -205,7 +280,7 @@ export default function SignInScreen() {
                       disabled={loading || !loginIdentifier || !password}
                       style={styles.button}
                       contentStyle={styles.buttonContent}
-                      buttonColor={theme.colors.primary}
+                      buttonColor={palette.primary}
                       textColor="#FFFFFF"
                       icon="lock-outline"
                       accessibilityLabel="Sign in"
@@ -215,16 +290,18 @@ export default function SignInScreen() {
                     </Button>
 
                     <View style={styles.dividerRow}>
-                      <Divider style={styles.divider} bold />
-                      <Text style={styles.dividerLabel}>or continue with</Text>
-                      <Divider style={styles.divider} bold />
+                      <Divider style={[styles.divider, dynamicStyles.divider]} bold />
+                      <Text style={[styles.dividerLabel, dynamicStyles.dividerLabel]}>
+                        or continue with
+                      </Text>
+                      <Divider style={[styles.divider, dynamicStyles.divider]} bold />
                     </View>
 
                     <View style={styles.socialButtonsRow}>
                       <Button
                         mode="outlined"
                         icon="google"
-                        style={styles.socialButton}
+                        style={[styles.socialButton, dynamicStyles.socialButton]}
                         labelStyle={styles.socialLabel}
                         onPress={() => Alert.alert('Coming soon', 'Google sign-in coming soon.')}
                       >
@@ -233,7 +310,7 @@ export default function SignInScreen() {
                       <Button
                         mode="outlined"
                         icon="apple"
-                        style={styles.socialButton}
+                        style={[styles.socialButton, dynamicStyles.socialButton]}
                         labelStyle={styles.socialLabel}
                         onPress={() => Alert.alert('Coming soon', 'Apple sign-in coming soon.')}
                       >
@@ -242,10 +319,10 @@ export default function SignInScreen() {
                     </View>
 
                     <View style={styles.registerContainer}>
-                      <Text variant="bodySmall" style={styles.registerText}>
+                      <Text variant="bodySmall" style={[styles.registerText, dynamicStyles.registerText]}>
                         Don&apos;t have an account?{' '}
                         <Text
-                          style={styles.registerLink}
+                          style={[styles.registerLink, dynamicStyles.registerLink]}
                           onPress={() => {
                             Keyboard.dismiss();
                             // @ts-ignore
@@ -258,10 +335,10 @@ export default function SignInScreen() {
                     </View>
 
                     <View style={styles.termsContainer}>
-                      <Text variant="bodySmall" style={styles.termsText}>
+                      <Text variant="bodySmall" style={[styles.termsText, dynamicStyles.termsText]}>
                         By signing in, you agree to our{' '}
                         <Text
-                          style={styles.link}
+                          style={[styles.link, dynamicStyles.link]}
                           onPress={() => {
                             Keyboard.dismiss();
                             // @ts-ignore
@@ -272,7 +349,7 @@ export default function SignInScreen() {
                         </Text>{' '}
                         and{' '}
                         <Text
-                          style={styles.link}
+                          style={[styles.link, dynamicStyles.link]}
                           onPress={() => {
                             Keyboard.dismiss();
                             // @ts-ignore
@@ -298,7 +375,7 @@ export default function SignInScreen() {
             label: 'Dismiss',
             onPress: handleDismissSnackbar,
           }}
-          style={styles.snackbar}
+          style={[styles.snackbar, dynamicStyles.snackbar]}
         >
           {error || 'Welcome back! Redirecting…'}
         </Snackbar>

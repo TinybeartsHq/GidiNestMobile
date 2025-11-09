@@ -14,8 +14,8 @@ const Stack = createNativeStackNavigator();
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator 
-        initialRouteName="SignIn"
+      <Stack.Navigator
+        initialRouteName="Dashboard"
         screenOptions={{
           headerShown: false,
         }}
@@ -34,81 +34,11 @@ export default function AppNavigator() {
             headerShown: false,
           }}
         />
-        <Stack.Screen 
-          name="Dashboard" 
-          component={DashboardScreen}
-          options={{
-            headerShown: true,
-            title: 'Dashboard',
-            headerStyle: {
-              backgroundColor: '#6b146d',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-          }}
-        />
-        <Stack.Screen 
-          name="Savings" 
-          component={SavingsScreen}
-          options={{
-            headerShown: true,
-            title: 'Savings',
-            headerStyle: {
-              backgroundColor: '#6b146d',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-          }}
-        />
-        <Stack.Screen 
-          name="Community" 
-          component={CommunityScreen}
-          options={{
-            headerShown: true,
-            title: 'Community',
-            headerStyle: {
-              backgroundColor: '#6b146d',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-          }}
-        />
-        <Stack.Screen 
-          name="Transactions" 
-          component={TransactionsScreen}
-          options={{
-            headerShown: true,
-            title: 'Transactions',
-            headerStyle: {
-              backgroundColor: '#6b146d',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-          }}
-        />
-        <Stack.Screen 
-          name="Profile" 
-          component={ProfileScreen}
-          options={{
-            headerShown: true,
-            title: 'Profile',
-            headerStyle: {
-              backgroundColor: '#6b146d',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-          }}
-        />
+        <Stack.Screen name="Dashboard" component={DashboardScreen} />
+        <Stack.Screen name="Savings" component={SavingsScreen} />
+        <Stack.Screen name="Community" component={CommunityScreen} />
+        <Stack.Screen name="Transactions" component={TransactionsScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

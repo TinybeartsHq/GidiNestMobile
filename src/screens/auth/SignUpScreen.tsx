@@ -28,6 +28,7 @@ import {
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme/theme';
+import { useThemeMode } from '../../theme/ThemeProvider';
 
 const { width, height } = Dimensions.get('window');
 
@@ -70,6 +71,17 @@ const nigerianStates = [
   'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
 ];
 
+const hexToRgba = (hex: string, alpha: number) => {
+  const normalized = hex.replace('#', '');
+  const bigint = parseInt(normalized.length === 3
+    ? normalized.replace(/./g, (c) => c + c)
+    : normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 export default function SignUpScreen() {
   const navigation = useNavigation();
 
@@ -94,7 +106,6 @@ export default function SignUpScreen() {
   const [state, setState] = useState('');
   const [address, setAddress] = useState('');
   const [stateModalVisible, setStateModalVisible] = useState(false);
-  const statePickerRef = useRef<any>(null);
 
   // Password step state
   const [password, setPassword] = useState('');
@@ -107,6 +118,166 @@ export default function SignUpScreen() {
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
   const navigationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const { mode, palette } = useThemeMode();
+  const isDark = mode === 'dark';
+  const borderNeutral = isDark ? 'rgba(148, 163, 184, 0.42)' : 'rgba(148, 163, 184, 0.45)';
+  const borderSoft = isDark ? 'rgba(148, 163, 184, 0.28)' : 'rgba(148, 163, 184, 0.16)';
+  const cardBackground = isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255,255,255,0.94)';
+  const stepChipBackground = isDark ? 'rgba(15, 23, 42, 0.6)' : '#F4F4F6';
+  const stepChipActiveBackground = isDark
+    ? hexToRgba(palette.primary, 0.2)
+    : hexToRgba(palette.primary, 0.1);
+  const stepChipCompletedBorder = isDark
+    ? hexToRgba(palette.primary, 0.32)
+    : hexToRgba(palette.primary, 0.27);
+  const noticeBackground = isDark
+    ? hexToRgba(palette.primary, 0.12)
+    : hexToRgba(palette.primary, 0.06);
+  const pickerBackground = isDark ? palette.card : '#FFFFFF';
+  const gradientColors: [string, string] = isDark
+    ? ['rgba(2, 6, 23, 0.82)', 'rgba(76, 29, 149, 0.35)']
+    : ['rgba(15, 23, 42, 0.6)', 'rgba(107, 20, 109, 0.15)'];
+
+  const dynamicStyles = useMemo(
+    () => ({
+      container: {
+        backgroundColor: palette.background,
+      },
+      overlay: {},
+      formCard: {
+        backgroundColor: cardBackground,
+        borderColor: stepChipCompletedBorder,
+      },
+      formTitle: {
+        color: palette.primary,
+      },
+      formSubtitle: {
+        color: palette.textSecondary,
+      },
+      stepChip: {
+        backgroundColor: stepChipBackground,
+      },
+      stepChipCompleted: {
+        borderColor: stepChipCompletedBorder,
+      },
+      stepChipActive: {
+        backgroundColor: stepChipActiveBackground,
+      },
+      stepChipText: {
+        color: palette.textSecondary,
+      },
+      stepChipTextActive: {
+        color: palette.primary,
+      },
+      divider: {
+        backgroundColor: borderSoft,
+      },
+      stepDescription: {
+        color: palette.textSecondary,
+      },
+      stepInstruction: {
+        color: palette.textSecondary,
+      },
+      noticeCard: {
+        backgroundColor: noticeBackground,
+      },
+      noticeTitle: {
+        color: palette.primary,
+      },
+      noticeDescription: {
+        color: palette.textSecondary,
+      },
+      helperText: {
+        color: palette.textSecondary,
+      },
+      input: {
+        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.65)' : '#FFFFFF',
+      },
+      footerText: {
+        color: palette.textSecondary,
+      },
+      footerLink: {
+        color: palette.primary,
+      },
+      secondaryTextButtonLabel: {
+        color: palette.primary,
+      },
+      pickerFloatingLabel: {
+        color: palette.textSecondary,
+      },
+      customPicker: {
+        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.65)' : '#FFFFFF',
+        borderColor: borderNeutral,
+      },
+      customPickerValue: {
+        color: palette.text,
+      },
+      customPickerPlaceholder: {
+        color: palette.textSecondary,
+      },
+      customPickerIcon: {
+        color: palette.textSecondary,
+      },
+      iosPickerButton: {
+        borderColor: hexToRgba(palette.primary, isDark ? 0.35 : 0.33),
+      },
+      snackbar: {
+        backgroundColor: isDark ? palette.surface : undefined,
+      },
+      pickerModalContent: {
+        backgroundColor: pickerBackground,
+      },
+      pickerModalHandle: {
+        backgroundColor: borderNeutral,
+      },
+      pickerModalTitle: {
+        color: palette.text,
+      },
+      pickerOption: {
+        borderColor: borderSoft,
+      },
+      pickerOptionSelected: {
+        backgroundColor: hexToRgba(palette.primary, isDark ? 0.15 : 0.05),
+      },
+      pickerOptionLabel: {
+        color: palette.text,
+      },
+      pickerOptionLabelSelected: {
+        color: palette.primary,
+      },
+      pickerOptionCheck: {
+        color: palette.primary,
+      },
+      pickerModalCloseLabel: {
+        color: palette.primary,
+      },
+    }),
+    [
+      borderNeutral,
+      borderSoft,
+      cardBackground,
+      isDark,
+      palette.background,
+      palette.primary,
+      palette.surface,
+      palette.text,
+      palette.textSecondary,
+      pickerBackground,
+      stepChipActiveBackground,
+      stepChipBackground,
+      stepChipCompletedBorder,
+    ]
+  );
+
+  const inputTheme = useMemo(
+    () => ({
+      colors: {
+        text: isDark ? '#F8FAFC' : '#0F172A',
+        placeholder: isDark ? '#94A3B8' : '#94A3B8',
+      },
+    }),
+    [isDark]
+  );
 
   React.useEffect(() => {
     return () => {
@@ -232,9 +403,11 @@ export default function SignUpScreen() {
 
   const renderRegisterStep = () => (
     <View style={styles.formStep}>
-      <Surface style={styles.noticeCard} elevation={0}>
-        <Text style={styles.noticeTitle}>Important: Accurate Information Required</Text>
-        <Text style={styles.noticeDescription}>
+      <Surface style={[styles.noticeCard, dynamicStyles.noticeCard]} elevation={0}>
+        <Text style={[styles.noticeTitle, dynamicStyles.noticeTitle]}>
+          Important: Accurate Information Required
+        </Text>
+        <Text style={[styles.noticeDescription, dynamicStyles.noticeDescription]}>
           Please provide accurate information as it will be used for Know Your Customer verification.
           Ensure your details match your official documents.
         </Text>
@@ -248,14 +421,15 @@ export default function SignUpScreen() {
         keyboardType="phone-pad"
         autoCapitalize="none"
         returnKeyType="next"
-        style={styles.input}
+        style={[styles.input, dynamicStyles.input]}
         mode="outlined"
-        outlineColor={theme.colors.border + '80'}
-        activeOutlineColor={theme.colors.primary}
+        outlineColor={borderNeutral}
+        activeOutlineColor={palette.primary}
         contentStyle={styles.inputContent}
         maxLength={15}
+        theme={inputTheme}
       />
-      <HelperText type="info" style={styles.helperText}>
+      <HelperText type="info" style={[styles.helperText, dynamicStyles.helperText]}>
         Enter your active phone number (11 digits) to receive OTP.
       </HelperText>
 
@@ -268,13 +442,14 @@ export default function SignUpScreen() {
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="next"
-        style={styles.input}
+        style={[styles.input, dynamicStyles.input]}
         mode="outlined"
-        outlineColor={theme.colors.border + '80'}
-        activeOutlineColor={theme.colors.primary}
+        outlineColor={borderNeutral}
+        activeOutlineColor={palette.primary}
         contentStyle={styles.inputContent}
+        theme={inputTheme}
       />
-      <HelperText type="info" style={styles.helperText}>
+      <HelperText type="info" style={[styles.helperText, dynamicStyles.helperText]}>
         Provide a valid email address for account notifications.
       </HelperText>
 
@@ -284,11 +459,12 @@ export default function SignUpScreen() {
         onChangeText={setFirstName}
         autoCapitalize="words"
         returnKeyType="next"
-        style={styles.input}
+        style={[styles.input, dynamicStyles.input]}
         mode="outlined"
-        outlineColor={theme.colors.border + '80'}
-        activeOutlineColor={theme.colors.primary}
+        outlineColor={borderNeutral}
+        activeOutlineColor={palette.primary}
         contentStyle={styles.inputContent}
+        theme={inputTheme}
       />
 
       <TextInput
@@ -297,11 +473,12 @@ export default function SignUpScreen() {
         onChangeText={setLastName}
         autoCapitalize="words"
         returnKeyType="done"
-        style={styles.input}
+        style={[styles.input, dynamicStyles.input]}
         mode="outlined"
-        outlineColor={theme.colors.border + '80'}
-        activeOutlineColor={theme.colors.primary}
+        outlineColor={borderNeutral}
+        activeOutlineColor={palette.primary}
         contentStyle={styles.inputContent}
+        theme={inputTheme}
       />
 
       <Button
@@ -312,7 +489,7 @@ export default function SignUpScreen() {
         disabled={loading || (!email && !phoneNumber) || !firstName || !lastName}
         style={styles.primaryButton}
         contentStyle={styles.buttonContent}
-        buttonColor={theme.colors.primary}
+        buttonColor={palette.primary}
         textColor="#FFFFFF"
         rippleColor="rgba(255,255,255,0.2)"
       >
@@ -320,10 +497,10 @@ export default function SignUpScreen() {
       </Button>
 
       <View style={styles.footerTextRow}>
-        <Text variant="bodySmall" style={styles.footerText}>
+        <Text variant="bodySmall" style={[styles.footerText, dynamicStyles.footerText]}>
           Already have an account?{' '}
           <Text
-            style={styles.footerLink}
+            style={[styles.footerLink, dynamicStyles.footerLink]}
             onPress={() => {
               Keyboard.dismiss();
               // @ts-ignore
@@ -339,7 +516,7 @@ export default function SignUpScreen() {
 
   const renderOtpStep = () => (
     <View style={styles.formStep}>
-      <Text style={styles.stepInstruction}>
+      <Text style={[styles.stepInstruction, dynamicStyles.stepInstruction]}>
         Enter the 6-digit one-time password sent to your phone or email.
       </Text>
 
@@ -350,16 +527,17 @@ export default function SignUpScreen() {
         placeholder="123456"
         keyboardType="number-pad"
         returnKeyType="done"
-        style={styles.input}
+        style={[styles.input, dynamicStyles.input]}
         mode="outlined"
-        outlineColor={theme.colors.border + '80'}
-        activeOutlineColor={theme.colors.primary}
+        outlineColor={borderNeutral}
+        activeOutlineColor={palette.primary}
         contentStyle={styles.inputContent}
         maxLength={6}
+        theme={inputTheme}
       />
 
       {registrationMessage ? (
-        <HelperText type="info" style={styles.helperText}>
+        <HelperText type="info" style={[styles.helperText, dynamicStyles.helperText]}>
           {registrationMessage}
         </HelperText>
       ) : null}
@@ -372,7 +550,7 @@ export default function SignUpScreen() {
         disabled={loading || otp.trim().length !== 6}
         style={styles.primaryButton}
         contentStyle={styles.buttonContent}
-        buttonColor={theme.colors.primary}
+        buttonColor={palette.primary}
         textColor="#FFFFFF"
         rippleColor="rgba(255,255,255,0.2)"
       >
@@ -384,7 +562,7 @@ export default function SignUpScreen() {
         onPress={handleRegister}
         disabled={loading}
         style={styles.secondaryTextButton}
-        labelStyle={styles.secondaryTextButtonLabel}
+        labelStyle={[styles.secondaryTextButtonLabel, dynamicStyles.secondaryTextButtonLabel]}
       >
         Resend OTP
       </Button>
@@ -393,8 +571,8 @@ export default function SignUpScreen() {
 
   const renderProfileDetailsStep = () => (
     <View style={styles.formStep}>
-      <Surface style={styles.noticeCard} elevation={0}>
-        <Text style={styles.noticeDescription}>
+      <Surface style={[styles.noticeCard, dynamicStyles.noticeCard]} elevation={0}>
+        <Text style={[styles.noticeDescription, dynamicStyles.noticeDescription]}>
           Provide accurate information. This must match your government-issued identification.
         </Text>
       </Surface>
@@ -406,18 +584,19 @@ export default function SignUpScreen() {
             value={formattedDob}
             placeholder="YYYY-MM-DD"
             editable={false}
-            style={styles.input}
+            style={[styles.input, dynamicStyles.input]}
             mode="outlined"
-            outlineColor={theme.colors.border + '80'}
-            activeOutlineColor={theme.colors.primary}
+            outlineColor={borderNeutral}
+            activeOutlineColor={palette.primary}
             right={<TextInput.Icon icon="calendar" onPress={() => setShowDatePicker(true)} />}
             pointerEvents="none"
             contentStyle={styles.inputContent}
+            theme={inputTheme}
           />
         </View>
       </TouchableWithoutFeedback>
 
-      <HelperText type="info" style={styles.helperText}>
+      <HelperText type="info" style={[styles.helperText, dynamicStyles.helperText]}>
         Enter your date of birth as it appears on official documents.
       </HelperText>
 
@@ -448,26 +627,35 @@ export default function SignUpScreen() {
         <Button
           mode="outlined"
           onPress={() => setShowDatePicker(false)}
-          style={styles.iosPickerButton}
-          textColor={theme.colors.primary}
+          style={[styles.iosPickerButton, dynamicStyles.iosPickerButton]}
+          textColor={palette.primary}
         >
           Done
         </Button>
       )}
 
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerFloatingLabel}>State / Province</Text>
+        <Text style={[styles.pickerFloatingLabel, dynamicStyles.pickerFloatingLabel]}>
+          State / Province
+        </Text>
         <Pressable
-          style={styles.customPicker}
+          style={[styles.customPicker, dynamicStyles.customPicker]}
           onPress={() => {
             Keyboard.dismiss();
             setStateModalVisible(true);
           }}
         >
-          <Text style={[styles.customPickerValue, !state && styles.customPickerPlaceholder]}>
+          <Text
+            style={[
+              styles.customPickerValue,
+              dynamicStyles.customPickerValue,
+              !state && styles.customPickerPlaceholder,
+              !state && dynamicStyles.customPickerPlaceholder,
+            ]}
+          >
             {state || 'Select your state'}
           </Text>
-          <Text style={styles.customPickerIcon}>▼</Text>
+          <Text style={[styles.customPickerIcon, dynamicStyles.customPickerIcon]}>▼</Text>
         </Pressable>
       </View>
 
@@ -478,11 +666,12 @@ export default function SignUpScreen() {
         placeholder="House number, street, city"
         autoCapitalize="sentences"
         returnKeyType="done"
-        style={styles.input}
+        style={[styles.input, dynamicStyles.input]}
         mode="outlined"
-        outlineColor={theme.colors.border + '80'}
-        activeOutlineColor={theme.colors.primary}
+        outlineColor={borderNeutral}
+        activeOutlineColor={palette.primary}
         contentStyle={styles.inputContent}
+        theme={inputTheme}
       />
 
       <Button
@@ -493,7 +682,7 @@ export default function SignUpScreen() {
         disabled={loading}
         style={styles.primaryButton}
         contentStyle={styles.buttonContent}
-        buttonColor={theme.colors.primary}
+        buttonColor={palette.primary}
         textColor="#FFFFFF"
         rippleColor="rgba(255,255,255,0.2)"
       >
@@ -517,10 +706,10 @@ export default function SignUpScreen() {
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="next"
-        style={styles.input}
+        style={[styles.input, dynamicStyles.input]}
         mode="outlined"
-        outlineColor={theme.colors.border + '80'}
-        activeOutlineColor={theme.colors.primary}
+        outlineColor={borderNeutral}
+        activeOutlineColor={palette.primary}
         contentStyle={styles.inputContent}
         right={
           <TextInput.Icon
@@ -529,8 +718,9 @@ export default function SignUpScreen() {
             forceTextInputFocus={false}
           />
         }
+        theme={inputTheme}
       />
-      <HelperText type="info" style={styles.helperText}>
+      <HelperText type="info" style={[styles.helperText, dynamicStyles.helperText]}>
         Must be at least 8 characters long, contain a number, and a special character.
       </HelperText>
 
@@ -545,10 +735,10 @@ export default function SignUpScreen() {
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="done"
-        style={styles.input}
+        style={[styles.input, dynamicStyles.input]}
         mode="outlined"
-        outlineColor={theme.colors.border + '80'}
-        activeOutlineColor={theme.colors.primary}
+        outlineColor={borderNeutral}
+        activeOutlineColor={palette.primary}
         contentStyle={styles.inputContent}
         right={
           <TextInput.Icon
@@ -558,11 +748,15 @@ export default function SignUpScreen() {
           />
         }
         error={!!passwordError || passwordsMismatch}
+        theme={inputTheme}
       />
       <HelperText
         type={passwordError ? 'error' : 'info'}
         visible={!!passwordError || passwordsMismatch}
-        style={styles.helperText}
+        style={[
+          styles.helperText,
+          !passwordError && dynamicStyles.helperText,
+        ]}
       >
         {passwordError || (passwordsMismatch ? 'Passwords do not match.' : '')}
       </HelperText>
@@ -581,7 +775,7 @@ export default function SignUpScreen() {
         }
         style={styles.primaryButton}
         contentStyle={styles.buttonContent}
-        buttonColor={theme.colors.primary}
+        buttonColor={palette.primary}
         textColor="#FFFFFF"
         rippleColor="rgba(255,255,255,0.2)"
       >
@@ -607,7 +801,7 @@ export default function SignUpScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
+      <View style={[styles.container, dynamicStyles.container]}>
         <Image
           source={require('../../../assets/background/2149836836.jpg')}
           style={styles.backgroundImage}
@@ -615,7 +809,7 @@ export default function SignUpScreen() {
           priority="high"
         />
         <LinearGradient
-          colors={['rgba(15, 23, 42, 0.6)', 'rgba(107, 20, 109, 0.15)']}
+          colors={gradientColors}
           style={styles.overlay}
         />
 
@@ -630,10 +824,10 @@ export default function SignUpScreen() {
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              <Surface style={styles.formCard} elevation={5}>
+              <Surface style={[styles.formCard, dynamicStyles.formCard]} elevation={5}>
                 <View style={styles.stepHeader}>
-                  <Text style={styles.formTitle}>Create your account</Text>
-                  <Text style={styles.formSubtitle}>
+                  <Text style={[styles.formTitle, dynamicStyles.formTitle]}>Create your account</Text>
+                  <Text style={[styles.formSubtitle, dynamicStyles.formSubtitle]}>
                     Follow the steps below to complete your registration.
                   </Text>
                 </View>
@@ -650,10 +844,16 @@ export default function SignUpScreen() {
                         mode={isCompleted ? 'outlined' : 'flat'}
                         style={[
                           styles.stepChip,
+                          dynamicStyles.stepChip,
                           isCompleted && styles.stepChipCompleted,
+                          isCompleted && dynamicStyles.stepChipCompleted,
                           isActive && styles.stepChipActive,
+                          isActive && dynamicStyles.stepChipActive,
                         ]}
-                        textStyle={isActive ? styles.stepChipTextActive : styles.stepChipText}
+                        textStyle={[
+                          isActive ? styles.stepChipTextActive : styles.stepChipText,
+                          isActive ? dynamicStyles.stepChipTextActive : dynamicStyles.stepChipText,
+                        ]}
                         compact
                       >
                         {index + 1}. {step.label}
@@ -662,9 +862,9 @@ export default function SignUpScreen() {
                   })}
                 </View>
 
-                <Divider style={styles.divider} />
+                <Divider style={[styles.divider, dynamicStyles.divider]} />
 
-                <Text style={styles.stepDescription}>
+                <Text style={[styles.stepDescription, dynamicStyles.stepDescription]}>
                   {steps.find((step) => step.key === currentStep)?.description}
                 </Text>
 
@@ -682,7 +882,7 @@ export default function SignUpScreen() {
             label: 'Dismiss',
             onPress: handleDismissSnackbar,
           }}
-          style={styles.snackbar}
+          style={[styles.snackbar, dynamicStyles.snackbar]}
         >
           {snackbarMessage || 'Something happened.'}
         </Snackbar>
@@ -696,27 +896,38 @@ export default function SignUpScreen() {
           <TouchableWithoutFeedback onPress={() => setStateModalVisible(false)}>
             <View style={styles.pickerModalBackdrop} />
           </TouchableWithoutFeedback>
-          <View style={styles.pickerModalContent}>
-            <View style={styles.pickerModalHandle} />
-            <Text style={styles.pickerModalTitle}>Select your state</Text>
+            <View style={[styles.pickerModalContent, dynamicStyles.pickerModalContent]}>
+            <View style={[styles.pickerModalHandle, dynamicStyles.pickerModalHandle]} />
+            <Text style={[styles.pickerModalTitle, dynamicStyles.pickerModalTitle]}>
+              Select your state
+            </Text>
             <ScrollView keyboardShouldPersistTaps="handled">
               {nigerianStates.map((stateName) => {
                 const isSelected = state === stateName;
                 return (
                   <Pressable
                     key={stateName}
-                    style={[styles.pickerOption, isSelected && styles.pickerOptionSelected]}
+                    style={[
+                      styles.pickerOption,
+                      dynamicStyles.pickerOption,
+                      isSelected && styles.pickerOptionSelected,
+                      isSelected && dynamicStyles.pickerOptionSelected,
+                    ]}
                     onPress={() => handleSelectState(stateName)}
                   >
                     <Text
                       style={[
                         styles.pickerOptionLabel,
                         isSelected && styles.pickerOptionLabelSelected,
+                        dynamicStyles.pickerOptionLabel,
+                        isSelected && dynamicStyles.pickerOptionLabelSelected,
                       ]}
                     >
                       {stateName}
                     </Text>
-                    {isSelected ? <Text style={styles.pickerOptionCheck}>✓</Text> : null}
+                    {isSelected ? (
+                      <Text style={[styles.pickerOptionCheck, dynamicStyles.pickerOptionCheck]}>✓</Text>
+                    ) : null}
                   </Pressable>
                 );
               })}
@@ -725,7 +936,7 @@ export default function SignUpScreen() {
               mode="text"
               onPress={() => setStateModalVisible(false)}
               style={styles.pickerModalClose}
-              labelStyle={styles.pickerModalCloseLabel}
+              labelStyle={[styles.pickerModalCloseLabel, dynamicStyles.pickerModalCloseLabel]}
             >
               Cancel
             </Button>
