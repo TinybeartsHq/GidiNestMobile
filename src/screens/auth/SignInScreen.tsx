@@ -1,10 +1,9 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   Dimensions,
   TouchableWithoutFeedback,
   Keyboard,
@@ -12,36 +11,86 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  Text,
-  TextInput,
-  Button,
-  SegmentedButtons,
-  Snackbar,
-  Surface,
-  Divider,
-} from 'react-native-paper';
+import { Text, TextInput, Button, Snackbar, HelperText, Checkbox } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { loginUser, clearError } from '../../redux/auth';
+import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import type { RootState, AppDispatch } from '../../redux/types';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
+
+const PHONE_REGEX = /^\+?[0-9]{7,15}$/;
 
 export default function SignInScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { mode, palette } = useThemeMode();
+  const isDark = mode === 'dark';
 
   const passwordInputRef = useRef<any>(null);
 
-  const [loginType, setLoginType] = useState<'email' | 'phone'>('phone');
-  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [touched, setTouched] = useState<{ phone: boolean; password: boolean }>({
+    phone: false,
+    password: false,
+  });
+
+  const borderNeutral = isDark ? 'rgba(148, 163, 184, 0.45)' : 'rgba(148, 163, 184, 0.32)';
+  const inputBackground = isDark ? 'rgba(15, 23, 42, 0.72)' : '#FFFFFF';
+  const heroBackdropGradient = isDark
+    ? (['rgba(12, 10, 30, 0.94)', 'rgba(15, 23, 42, 0.9)', 'rgba(15, 23, 42, 0.86)'] as const)
+    : (['rgba(246, 245, 255, 0.9)', 'rgba(252, 252, 255, 0.9)', 'rgba(255, 255, 255, 1)'] as const);
+
+  const dynamicStyles = useMemo(
+    () => ({
+      container: {
+        backgroundColor: palette.background,
+      },
+      formCard: {
+        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.94)' : '#FFFFFF',
+        borderColor: borderNeutral,
+        shadowColor: isDark ? '#000000' : 'rgba(15, 23, 42, 0.08)',
+      },
+      title: {
+        color: palette.text,
+      },
+      subtitle: {
+        color: palette.textSecondary,
+      },
+      input: {
+        backgroundColor: inputBackground,
+      },
+      helperError: {
+        color: palette.error,
+      },
+      link: {
+        color: palette.primary,
+      },
+      button: {
+        shadowColor: palette.primary,
+      },
+      snackbar: {
+        backgroundColor: isDark ? palette.surface : undefined,
+      },
+      registerText: {
+        color: palette.textSecondary,
+      },
+      registerLink: {
+        color: palette.primary,
+      },
+      termsText: {
+        color: palette.textSecondary,
+      },
+    }),
+    [palette, isDark, borderNeutral, inputBackground]
+  );
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -56,20 +105,36 @@ export default function SignInScreen() {
     }
   }, [error]);
 
+  const phoneError = useMemo(() => {
+    if (!touched.phone) return '';
+    if (!phoneNumber.trim()) return 'Phone number is required.';
+    if (!PHONE_REGEX.test(phoneNumber.trim())) return 'Enter a valid phone number.';
+    return '';
+  }, [phoneNumber, touched.phone]);
+
+  const passwordError = useMemo(() => {
+    if (!touched.password) return '';
+    if (!password.trim()) return 'Password is required.';
+    if (password.trim().length < 6) return 'Password must be at least 6 characters.';
+    return '';
+  }, [password, touched.password]);
+
+  const isFormValid = !phoneError && !passwordError && !!phoneNumber.trim() && !!password.trim();
+
   const handleSignIn = useCallback(async () => {
     Keyboard.dismiss();
 
-    if (!loginIdentifier || !password) {
-      Alert.alert('Error', 'Email/Phone number and password are required.');
+    if (!isFormValid) {
+      setTouched({ phone: true, password: true });
       return;
     }
 
     const credentials = {
       login_type: 'password' as const,
-      password,
-      login_with: loginType,
-      email: loginType === 'email' ? loginIdentifier.trim() : undefined,
-      phone: loginType === 'phone' ? loginIdentifier.trim() : undefined,
+      password: password.trim(),
+      login_with: 'phone' as const,
+      phone: phoneNumber.trim(),
+      remember: rememberMe,
     };
 
     const result = await dispatch(loginUser(credentials));
@@ -78,26 +143,20 @@ export default function SignInScreen() {
       // @ts-ignore
       navigation.replace('Dashboard');
     }
-  }, [dispatch, navigation, loginIdentifier, password, loginType]);
-
-  const handleLoginTypeToggle = (value: string) => {
-    if (value === 'email' || value === 'phone') {
-      setLoginType(value);
-      setLoginIdentifier('');
-      Keyboard.dismiss();
-    }
-  };
+  }, [dispatch, navigation, isFormValid, phoneNumber, password, rememberMe]);
 
   const handleDismissSnackbar = () => {
     setSnackbarVisible(false);
     dispatch(clearError());
   };
 
-  const handleIdentifierSubmit = () => {
+  const handlePhoneSubmit = () => {
+    setTouched((prev) => ({ ...prev, phone: true }));
     passwordInputRef.current?.focus();
   };
 
   const handlePasswordSubmit = () => {
+    setTouched((prev) => ({ ...prev, password: true }));
     handleSignIn();
   };
 
@@ -107,18 +166,8 @@ export default function SignInScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
-      <View style={styles.container}>
-        <Image
-          source={require('../../../assets/background/2147919267.jpg')}
-          style={styles.backgroundImage}
-          contentFit="cover"
-          priority="high"
-        />
-        <LinearGradient
-          colors={['rgba(15, 23, 42, 0.55)', 'rgba(107, 20, 109, 0.18)']}
-          style={styles.overlay}
-        />
-
+      <View style={[styles.container, dynamicStyles.container]}>
+        <LinearGradient colors={heroBackdropGradient} style={styles.backdropGradient} />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -131,181 +180,129 @@ export default function SignInScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.contentContainer}>
-                <Surface style={styles.formCard} elevation={6}>
-                  <View style={styles.header}>
-                    <Text variant="headlineMedium" style={styles.title}>
-                      Sign in
-                    </Text>
-                    <Text variant="bodySmall" style={styles.subtitle}>
-                      Access your dashboard in seconds
-                    </Text>
-                  </View>
+                <View style={styles.headingBlock}>
+                  <Text style={[styles.brand, { color: palette.primary }]}>GidiNest</Text>
+                  <Text style={[styles.heading, dynamicStyles.title]}>Welcome back</Text>
+                  <Text style={[styles.tagline, dynamicStyles.subtitle]}>
+                    Sign in with your phone number to keep building your family&apos;s nest.
+                  </Text>
+                </View>
 
-                  <View style={styles.form}>
-                    <SegmentedButtons
-                      value={loginType}
-                      onValueChange={handleLoginTypeToggle}
-                      buttons={[
-                        {
-                          value: 'phone',
-                          label: 'Phone',
-                        },
-                        {
-                          value: 'email',
-                          label: 'Email',
-                        },
-                      ]}
-                      density="small"
-                      style={styles.segmentedButtons}
-                    />
+                <View style={[styles.formCard, dynamicStyles.formCard]}>
+                  <TextInput
+                    label="Phone number"
+                    value={phoneNumber}
+                    onChangeText={(value) => setPhoneNumber(value)}
+                    onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
+                    placeholder="+234 812 345 6789"
+                    keyboardType="phone-pad"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="tel"
+                    returnKeyType="next"
+                    onSubmitEditing={handlePhoneSubmit}
+                    blurOnSubmit={false}
+                    style={[styles.input, dynamicStyles.input]}
+                    mode="outlined"
+                    outlineColor={borderNeutral}
+                    activeOutlineColor={palette.primary}
+                    contentStyle={styles.inputContent}
+                    textContentType="telephoneNumber"
+                    error={!!phoneError}
+                  />
+                  <HelperText type="error" visible={!!phoneError} style={[styles.helperText, dynamicStyles.helperError]}>
+                    {phoneError}
+                  </HelperText>
 
-                    <TextInput
-                      label={loginType === 'email' ? 'Email address' : 'Phone Number'}
-                      value={loginIdentifier}
-                      onChangeText={setLoginIdentifier}
-                      placeholder={
-                        loginType === 'email' ? 'name@example.com' : '0809 876 5432'
-                      }
-                      keyboardType={loginType === 'email' ? 'email-address' : 'phone-pad'}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      autoComplete={loginType === 'email' ? 'email' : 'tel'}
-                      returnKeyType="next"
-                      onSubmitEditing={handleIdentifierSubmit}
-                      blurOnSubmit={false}
-                      style={styles.input}
-                      mode="outlined"
-                      outlineColor={theme.colors.border + '80'}
-                      activeOutlineColor={theme.colors.primary}
-                      contentStyle={styles.inputContent}
-                      textContentType={loginType === 'email' ? 'emailAddress' : 'telephoneNumber'}
-                    />
+                  <TextInput
+                    ref={passwordInputRef}
+                    label="Password"
+                    value={password}
+                    onChangeText={(value) => setPassword(value)}
+                    onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="password"
+                    returnKeyType="done"
+                    onSubmitEditing={handlePasswordSubmit}
+                    right={
+                      <TextInput.Icon
+                        icon={showPassword ? 'eye-off' : 'eye'}
+                        onPress={() => setShowPassword((prev) => !prev)}
+                        forceTextInputFocus={false}
+                      />
+                    }
+                    style={[styles.input, styles.passwordInput, dynamicStyles.input]}
+                    mode="outlined"
+                    outlineColor={borderNeutral}
+                    activeOutlineColor={palette.primary}
+                    contentStyle={styles.inputContent}
+                    textContentType="password"
+                    error={!!passwordError}
+                  />
+                  <HelperText type="error" visible={!!passwordError} style={[styles.helperText, dynamicStyles.helperError]}>
+                    {passwordError}
+                  </HelperText>
 
-                    <TextInput
-                      ref={passwordInputRef}
-                      label="Password"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry={!showPassword}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      autoComplete="password"
-                      returnKeyType="done"
-                      onSubmitEditing={handlePasswordSubmit}
-                      right={
-                        <TextInput.Icon
-                          icon={showPassword ? 'eye-off' : 'eye'}
-                          onPress={() => setShowPassword(!showPassword)}
-                          forceTextInputFocus={false}
-                        />
-                      }
-                      style={styles.input}
-                      mode="outlined"
-                      outlineColor={theme.colors.border + '80'}
-                      activeOutlineColor={theme.colors.primary}
-                      contentStyle={styles.inputContent}
-                      textContentType="password"
-                    />
-
-                    <Text
-                      variant="bodySmall"
-                      style={styles.forgotPassword}
+                  <View style={styles.optionsRow}>
+                    <View style={styles.rememberRow}>
+                      <Checkbox status={rememberMe ? 'checked' : 'unchecked'} onPress={() => setRememberMe((prev) => !prev)} />
+                      <Text style={[styles.rememberLabel, { color: palette.textSecondary }]}>Remember me</Text>
+                    </View>
+                    <Button
+                      mode="text"
+                      compact
+                      textColor={palette.primary}
+                      labelStyle={styles.linkText}
                       onPress={() => {
                         Keyboard.dismiss();
-                        // @ts-ignore
+                        // @ts-ignore - navigation type will be configured later
                         navigation.navigate('ForgotPassword');
                       }}
                     >
                       Forgot password?
-                    </Text>
-
-                    <Button
-                      mode="contained"
-                      onPress={handleSignIn}
-                      loading={loading}
-                      disabled={loading || !loginIdentifier || !password}
-                      style={styles.button}
-                      contentStyle={styles.buttonContent}
-                      buttonColor={theme.colors.primary}
-                      textColor="#FFFFFF"
-                      icon="lock-outline"
-                      accessibilityLabel="Sign in"
-                      accessibilityHint="Press to sign in to your account"
-                    >
-                      {loading ? 'Signing in...' : 'Sign in securely'}
                     </Button>
-
-                    <View style={styles.dividerRow}>
-                      <Divider style={styles.divider} bold />
-                      <Text style={styles.dividerLabel}>or continue with</Text>
-                      <Divider style={styles.divider} bold />
-                    </View>
-
-                    <View style={styles.socialButtonsRow}>
-                      <Button
-                        mode="outlined"
-                        icon="google"
-                        style={styles.socialButton}
-                        labelStyle={styles.socialLabel}
-                        onPress={() => Alert.alert('Coming soon', 'Google sign-in coming soon.')}
-                      >
-                        Google
-                      </Button>
-                      <Button
-                        mode="outlined"
-                        icon="apple"
-                        style={styles.socialButton}
-                        labelStyle={styles.socialLabel}
-                        onPress={() => Alert.alert('Coming soon', 'Apple sign-in coming soon.')}
-                      >
-                        Apple
-                      </Button>
-                    </View>
-
-                    <View style={styles.registerContainer}>
-                      <Text variant="bodySmall" style={styles.registerText}>
-                        Don&apos;t have an account?{' '}
-                        <Text
-                          style={styles.registerLink}
-                          onPress={() => {
-                            Keyboard.dismiss();
-                            // @ts-ignore
-                            navigation.navigate('Register');
-                          }}
-                        >
-                          Create one now
-                        </Text>
-                      </Text>
-                    </View>
-
-                    <View style={styles.termsContainer}>
-                      <Text variant="bodySmall" style={styles.termsText}>
-                        By signing in, you agree to our{' '}
-                        <Text
-                          style={styles.link}
-                          onPress={() => {
-                            Keyboard.dismiss();
-                            // @ts-ignore
-                            navigation.navigate('PrivacyPolicy');
-                          }}
-                        >
-                          Privacy Policy
-                        </Text>{' '}
-                        and{' '}
-                        <Text
-                          style={styles.link}
-                          onPress={() => {
-                            Keyboard.dismiss();
-                            // @ts-ignore
-                            navigation.navigate('TermsAndConditions');
-                          }}
-                        >
-                          Terms & Conditions
-                        </Text>
-                      </Text>
-                    </View>
                   </View>
-                </Surface>
+
+                  <Button
+                    mode="contained"
+                    onPress={handleSignIn}
+                    loading={loading}
+                    disabled={loading || !isFormValid}
+                    style={[styles.button, dynamicStyles.button]}
+                    contentStyle={styles.buttonContent}
+                    buttonColor={palette.primary}
+                    textColor="#FFFFFF"
+                    icon="lock-outline"
+                    accessibilityLabel="Sign in"
+                    accessibilityHint="Press to sign in to your account"
+                  >
+                    {loading ? 'Signing in...' : 'Sign in securely'}
+                  </Button>
+                </View>
+
+                <View style={styles.registerContainer}>
+                  <Text style={[styles.registerText, dynamicStyles.registerText]}>
+                    New to GidiNest?{' '}
+                    <Text
+                      style={[styles.registerLink, dynamicStyles.registerLink]}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        // @ts-ignore - navigation type will be configured later
+                        navigation.navigate('SignUp');
+                      }}
+                    >
+                      Create an account
+                    </Text>
+                  </Text>
+                </View>
+
+                <Text style={[styles.termsText, dynamicStyles.termsText]}>
+                  By continuing you agree to our{' '}
+                  <Text style={[styles.linkText, dynamicStyles.link]}>Privacy Policy</Text> and{' '}
+                  <Text style={[styles.linkText, dynamicStyles.link]}>Terms & Conditions</Text>.
+                </Text>
               </View>
             </ScrollView>
           </KeyboardAvoidingView>
@@ -319,7 +316,7 @@ export default function SignInScreen() {
             label: 'Dismiss',
             onPress: handleDismissSnackbar,
           }}
-          style={styles.snackbar}
+          style={[styles.snackbar, dynamicStyles.snackbar]}
         >
           {error || 'An error occurred'}
         </Snackbar>
@@ -331,17 +328,13 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
   },
-  backgroundImage: {
+  backdropGradient: {
     position: 'absolute',
-    width: width,
-    height: height,
-  },
-  overlay: {
-    position: 'absolute',
-    width: width,
-    height: height,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Math.max(height * 0.35, 260),
   },
   safeArea: {
     flex: 1,
@@ -351,131 +344,109 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    minHeight: height,
-    paddingHorizontal: theme.spacing.lg,
     paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: Math.max(theme.spacing.xl, 48),
   },
   contentContainer: {
     width: '100%',
-    paddingTop: theme.spacing.xl,
-    paddingBottom: theme.spacing.xl,
     alignItems: 'center',
+    gap: theme.spacing.lg,
+  },
+  headingBlock: {
+    width: '100%',
+    alignItems: 'flex-start',
+    gap: theme.spacing.xs,
+  },
+  brand: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+  heading: {
+    fontFamily: 'NeuzeitGro-ExtraBold',
+    fontSize: 28,
+    lineHeight: 32,
+  },
+  tagline: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 14,
+    lineHeight: 20,
   },
   formCard: {
     width: '100%',
-    maxWidth: 420,
-    borderRadius: theme.borderRadius.xl + 6,
+    borderRadius: theme.borderRadius.xl + 4,
     padding: theme.spacing.xl,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderWidth: 1,
-    borderColor: theme.colors.primary + '14',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: theme.spacing.lg,
-  },
-  title: {
-    fontWeight: '800',
-    color: theme.colors.primary,
-    marginBottom: theme.spacing.xs,
-  },
-  subtitle: {
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  form: {
-    width: '100%',
-  },
-  segmentedButtons: {
-    marginBottom: theme.spacing.md,
-    backgroundColor: '#F4F4F6',
-    borderRadius: theme.borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 5,
+    gap: theme.spacing.sm,
   },
   input: {
-    marginBottom: theme.spacing.md,
-    backgroundColor: '#FFFFFF',
+    marginBottom: theme.spacing.xs * 0.5,
     borderRadius: theme.borderRadius.md,
+  },
+  passwordInput: {
+    marginTop: theme.spacing.xs * 0.5,
+  },
+  helperText: {
+    marginBottom: theme.spacing.xs * 0.5,
   },
   inputContent: {
     fontSize: 16,
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: theme.spacing.md,
-    color: theme.colors.primary,
-    fontWeight: '600',
-    fontSize: 14,
+  optionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
   },
-  button: {
-    marginTop: theme.spacing.sm,
-    borderRadius: theme.borderRadius.lg,
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 4,
-  },
-  buttonContent: {
-    paddingVertical: theme.spacing.md,
-  },
-  dividerRow: {
+  rememberRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
-    marginVertical: theme.spacing.md,
+    gap: theme.spacing.xs,
   },
-  divider: {
-    flex: 1,
-    backgroundColor: theme.colors.border + '66',
+  rememberLabel: {
+    fontFamily: 'NeuzeitGro-Medium',
+    fontSize: 13,
   },
-  dividerLabel: {
-    color: theme.colors.textSecondary,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+  linkText: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 13,
   },
-  socialButtonsRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
+  button: {
+    borderRadius: theme.borderRadius.lg,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    elevation: 5,
+    marginTop: theme.spacing.xs,
   },
-  socialButton: {
-    flex: 1,
-    borderRadius: theme.borderRadius.md,
-    borderColor: theme.colors.border + '80',
-  },
-  socialLabel: {
-    fontSize: 14,
+  buttonContent: {
+    paddingVertical: theme.spacing.sm * 0.75,
   },
   registerContainer: {
     alignItems: 'center',
     marginTop: theme.spacing.sm,
   },
   registerText: {
-    color: theme.colors.textSecondary,
     fontSize: 14,
+    textAlign: 'center',
   },
   registerLink: {
-    color: theme.colors.primary,
-    fontWeight: '700',
-  },
-  termsContainer: {
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.sm,
-    marginTop: theme.spacing.md,
+    fontFamily: 'NeuzeitGro-SemiBold',
   },
   termsText: {
     textAlign: 'center',
-    color: theme.colors.textSecondary,
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  link: {
-    color: theme.colors.primary,
-    fontWeight: '600',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: theme.spacing.md,
   },
   snackbar: {
     marginBottom: theme.spacing.xl,
   },
 });
+

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Provider } from 'react-redux';
-import { PaperProvider } from 'react-native-paper';
 import * as SplashScreen from 'expo-splash-screen';
 import { store } from './src/redux/store';
 import AppNavigator from './src/navigation/AppNavigator';
 import SplashScreenComponent from './src/components/SplashScreen';
-import { paperTheme } from './src/theme/theme';
+import { ThemeProvider } from './src/theme/ThemeProvider';
+import { useThemeMode } from './src/theme/ThemeProvider';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -14,6 +14,8 @@ SplashScreen.preventAutoHideAsync();
 function AppContent() {
   const [isSplashReady, setIsSplashReady] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
+  const { mode, palette } = useThemeMode();
+  const statusBarStyle = mode === 'dark' ? 'light' : 'dark';
 
   React.useEffect(() => {
     // Hide native splash screen after a short delay
@@ -37,7 +39,11 @@ function AppContent() {
   return (
     <>
       <AppNavigator />
-      <StatusBar style="light" />
+      <StatusBar
+        style={statusBarStyle}
+        backgroundColor={palette.background}
+        translucent={false}
+      />
     </>
   );
 }
@@ -45,9 +51,9 @@ function AppContent() {
 export default function App() {
   return (
     <Provider store={store}>
-      <PaperProvider theme={paperTheme}>
+      <ThemeProvider>
         <AppContent />
-      </PaperProvider>
+      </ThemeProvider>
     </Provider>
   );
 }
