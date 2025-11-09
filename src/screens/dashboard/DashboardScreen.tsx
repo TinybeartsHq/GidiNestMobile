@@ -546,7 +546,7 @@ const DashboardScreen: React.FC = () => {
               </Button>
             </Surface>
           ) : (
-            goalsInFocus.slice(0, 2).map((goal) => (
+            goalsInFocus.map((goal) => (
               <Surface
                 key={goal.key}
                 style={[

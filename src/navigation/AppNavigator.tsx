@@ -15,7 +15,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Dashboard"
+        initialRouteName="SignIn"
         screenOptions={{
           headerShown: false,
         }}
