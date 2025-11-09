@@ -1,14 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  Text,
-  TextInput,
-  Button,
-  HelperText,
-  Checkbox,
-  Surface,
-} from 'react-native-paper';
+import { Text, TextInput, Button, HelperText, Checkbox, Surface } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
@@ -32,15 +25,32 @@ export default function SignUpScreen() {
     return {
       firstName: !firstName.trim() ? 'First name is required.' : '',
       lastName: !lastName.trim() ? 'Last name is required.' : '',
-      email: !EMAIL_REGEX.test(email.trim()) ? 'Enter a valid email address.' : '',
-      phone: !PHONE_REGEX.test(phone.trim()) ? 'Enter a valid phone number.' : '',
-      password:
-        password.trim().length < 6 ? 'Password must be at least 6 characters.' : '',
-      agree: !agree ? 'You must agree to continue.' : '',
+      email: email.trim() && EMAIL_REGEX.test(email.trim()) ? '' : 'Enter a valid email address.',
+      phone: phone.trim() && PHONE_REGEX.test(phone.trim()) ? '' : 'Enter a valid phone number.',
+      password: password.trim().length >= 6 ? '' : 'Password must be at least 6 characters.',
+      agree: agree ? '' : 'You must agree to continue.',
     };
   }, [firstName, lastName, email, phone, password, agree]);
 
   const isValid = Object.values(errors).every((err) => err === '');
+
+  const handleSubmit = () => {
+    setSubmitted(true);
+    if (!isValid) {
+      return;
+    }
+
+    Alert.alert(
+      'Account created',
+      'Your GidiNest account has been created. Sign in to continue.',
+      [
+        {
+          text: 'Sign in',
+          onPress: () => navigation.navigate('SignIn' as never),
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
@@ -124,9 +134,12 @@ export default function SignUpScreen() {
             </HelperText>
 
             <View style={styles.checkboxRow}>
-              <Checkbox status={agree ? 'checked' : 'unchecked'} onPress={() => setAgree((prev) => !prev)} />
+              <Checkbox
+                status={agree ? 'checked' : 'unchecked'}
+                onPress={() => setAgree((prev) => !prev)}
+              />
               <Text style={[styles.checkboxLabel, { color: palette.textSecondary }]}>
-                I agree to the Terms & Conditions
+                I agree to the Terms & Conditions and Privacy Policy.
               </Text>
             </View>
             <HelperText type="error" visible={submitted && !!errors.agree}>
@@ -135,27 +148,21 @@ export default function SignUpScreen() {
 
             <Button
               mode="contained"
-              onPress={() => {
-                setSubmitted(true);
-                if (isValid) {
-                  Alert.alert('Account created', 'Your account setup is complete.');
-                  // @ts-ignore - navigation typing to be refined
-                  navigation.navigate('SignIn');
-                }
-              }}
-              style={styles.primaryButton}
+              onPress={handleSubmit}
+              style={styles.button}
               contentStyle={styles.buttonContent}
+              buttonColor={palette.primary}
+              textColor="#FFFFFF"
             >
               Create account
             </Button>
 
             <Button
               mode="text"
-              onPress={() => navigation.goBack()}
-              style={styles.secondaryButton}
+              onPress={() => navigation.navigate('SignIn' as never)}
               textColor={palette.primary}
             >
-              Back to sign in
+              Already have an account? Sign in
             </Button>
           </Surface>
         </ScrollView>
@@ -172,53 +179,45 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.xl,
-    alignItems: 'center',
+    paddingBottom: theme.spacing.xl,
+    paddingTop: theme.spacing.xl,
   },
   card: {
-    width: '100%',
-    maxWidth: 460,
     borderRadius: theme.borderRadius.xl + 4,
-    borderWidth: 1,
     padding: theme.spacing.xl,
+    borderWidth: StyleSheet.hairlineWidth,
     gap: theme.spacing.sm,
   },
   title: {
     fontFamily: 'NeuzeitGro-ExtraBold',
     fontSize: 24,
-    textAlign: 'center',
   },
   subtitle: {
-    textAlign: 'center',
     fontFamily: 'NeuzeitGro-Regular',
     fontSize: 14,
-    marginBottom: theme.spacing.md,
+    lineHeight: 20,
   },
   input: {
-    borderRadius: theme.borderRadius.md,
+    marginTop: theme.spacing.sm,
   },
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: theme.spacing.xs,
     marginTop: theme.spacing.sm,
   },
   checkboxLabel: {
-    fontFamily: 'NeuzeitGro-Medium',
+    flex: 1,
+    fontFamily: 'NeuzeitGro-Regular',
     fontSize: 13,
   },
-  primaryButton: {
+  button: {
     marginTop: theme.spacing.lg,
     borderRadius: theme.borderRadius.lg,
   },
   buttonContent: {
     paddingVertical: theme.spacing.md,
   },
-  secondaryButton: {
-    marginTop: theme.spacing.sm,
-  },
 });
-
-
 

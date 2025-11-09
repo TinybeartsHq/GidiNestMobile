@@ -94,7 +94,7 @@ export default function SignInScreen() {
 
   React.useEffect(() => {
     if (isAuthenticated) {
-      // @ts-ignore - navigation type will be configured
+      // @ts-ignore - navigation type will be configured later
       navigation.replace('Dashboard');
     }
   }, [isAuthenticated, navigation]);
@@ -140,7 +140,7 @@ export default function SignInScreen() {
     const result = await dispatch(loginUser(credentials));
 
     if (loginUser.fulfilled.match(result)) {
-      // @ts-ignore
+      // @ts-ignore - navigation type will be configured later
       navigation.replace('Dashboard');
     }
   }, [dispatch, navigation, isFormValid, phoneNumber, password, rememberMe]);

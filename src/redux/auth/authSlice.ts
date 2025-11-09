@@ -15,14 +15,17 @@ export interface LoginCredentials {
 export interface RegisterData {
   email?: string;
   phone?: string;
-  name: string;
-  password: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  password?: string;
 }
 
 export interface OtpData {
   email?: string;
   phone?: string;
   otp: string;
+  session_id?: string;
 }
 
 export interface EmailActivationData {
