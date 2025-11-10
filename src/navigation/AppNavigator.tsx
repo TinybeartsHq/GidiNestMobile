@@ -5,6 +5,9 @@ import AuthLandingScreen from '../screens/auth/AuthLandingScreen';
 import SignInScreen from '../screens/auth/SignInScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import BottomTabNavigator from './BottomTabNavigator';
+import HospitalBillsScreen from '../screens/dashboard/HospitalBillsScreen';
+import BabySuppliesScreen from '../screens/dashboard/BabySuppliesScreen';
+import PostpartumCareScreen from '../screens/dashboard/PostpartumCareScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -21,6 +24,9 @@ export default function AppNavigator() {
         <Stack.Screen name="SignIn" component={SignInScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
         <Stack.Screen name="MainApp" component={BottomTabNavigator} />
+        <Stack.Screen name="HospitalBills" component={HospitalBillsScreen} />
+        <Stack.Screen name="BabySupplies" component={BabySuppliesScreen} />
+        <Stack.Screen name="PostpartumCare" component={PostpartumCareScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

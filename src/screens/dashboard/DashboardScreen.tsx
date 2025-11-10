@@ -8,11 +8,13 @@ import {
   Platform,
   Animated,
   Easing,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import type { RootState } from '../../redux/types';
 import { theme } from '../../theme/theme';
@@ -28,6 +30,7 @@ const formatCurrency = (value: number, currency: string) => {
 export default function DashboardScreen() {
   const user = useSelector((state: RootState) => state.auth.user);
   const { palette, mode } = useThemeMode();
+  const navigation = useNavigation();
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
 
@@ -105,14 +108,6 @@ export default function DashboardScreen() {
       bgColor: isDark ? 'rgba(251,191,36,0.12)' : 'rgba(217, 119, 6, 0.08)',
     },
     {
-      key: 'emergency',
-      icon: 'shield-heart',
-      label: 'Emergency fund',
-      subtitle: 'Safety net',
-      color: isDark ? '#6EE7B7' : '#059669',
-      bgColor: isDark ? 'rgba(16,185,129,0.12)' : 'rgba(5, 150, 105, 0.08)',
-    },
-    {
       key: 'postpartum',
       icon: 'heart-pulse',
       label: 'Postpartum care',
@@ -120,7 +115,54 @@ export default function DashboardScreen() {
       color: isDark ? '#C4B5FD' : '#7C3AED',
       bgColor: isDark ? 'rgba(147,51,234,0.12)' : 'rgba(124, 58, 237, 0.08)',
     },
+    {
+      key: 'gift-registry',
+      icon: 'gift',
+      label: 'Gift registry',
+      subtitle: 'Share with loved ones',
+      color: isDark ? '#F9A8D4' : '#EC4899',
+      bgColor: isDark ? 'rgba(236,72,153,0.12)' : 'rgba(236, 72, 153, 0.08)',
+    },
+    {
+      key: 'emergency',
+      icon: 'shield-heart',
+      label: 'Emergency fund',
+      subtitle: 'Coming soon',
+      color: isDark ? '#64748B' : '#94A3B8',
+      bgColor: isDark ? 'rgba(100,116,139,0.08)' : 'rgba(148, 163, 184, 0.06)',
+      disabled: true,
+    },
   ], [isDark]);
+
+  const handleQuickAction = useCallback((actionKey: string) => {
+    switch (actionKey) {
+      case 'hospital':
+        // @ts-ignore
+        navigation.navigate('HospitalBills');
+        break;
+      case 'baby-items':
+        // @ts-ignore
+        navigation.navigate('BabySupplies');
+        break;
+      case 'postpartum':
+        // @ts-ignore
+        navigation.navigate('PostpartumCare');
+        break;
+      case 'gift-registry':
+        // @ts-ignore nested navigator
+        navigation.navigate('Community', { screen: 'GiftRegistry' });
+        break;
+      case 'emergency':
+        Alert.alert(
+          'Coming Soon',
+          'Emergency fund feature is under development. Stay tuned!',
+          [{ text: 'OK' }]
+        );
+        break;
+      default:
+        break;
+    }
+  }, [navigation]);
 
   const savingGoals = useMemo(
     () => [
@@ -329,9 +371,10 @@ export default function DashboardScreen() {
                     {
                       backgroundColor: action.bgColor,
                       borderColor: separatorColor,
+                      opacity: action.disabled ? 0.5 : 1,
                     },
                   ]}
-                  onPress={() => {}}
+                  onPress={() => handleQuickAction(action.key)}
                 >
                   <View style={[styles.quickActionIcon, { backgroundColor: action.color + '18' }]}>
                     <MaterialCommunityIcons name={action.icon as any} size={20} color={action.color} />
