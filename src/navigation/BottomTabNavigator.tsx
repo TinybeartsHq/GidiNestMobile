@@ -21,7 +21,7 @@ import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import SavingsScreen from '../screens/savings/SavingsScreen';
 import CommunityNavigator from './CommunityNavigator';
 import TransactionsScreen from '../screens/transactions/TransactionsScreen';
-import ProfileScreen from '../screens/profile/ProfileScreen';
+import ProfileNavigator from './ProfileNavigator';
 
 const Tab = createBottomTabNavigator();
 
@@ -375,7 +375,7 @@ export default function BottomTabNavigator() {
       <Tab.Screen name="Savings" component={SavingsScreen} />
       <Tab.Screen name="Transactions" component={TransactionsScreen} />
       <Tab.Screen name="Community" component={CommunityNavigator} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Profile" component={ProfileNavigator} />
     </Tab.Navigator>
   );
 }

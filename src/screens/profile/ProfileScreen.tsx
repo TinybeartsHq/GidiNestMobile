@@ -12,9 +12,12 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { Switch } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import type { RootState } from '../../redux/types';
+import type { ProfileStackParamList } from '../../navigation/ProfileNavigator';
 
 const formatCurrency = (value: number) => {
   return `₦${value.toLocaleString('en-NG', {
@@ -23,11 +26,14 @@ const formatCurrency = (value: number) => {
   })}`;
 };
 
+type ProfileNavigationProp = NativeStackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
+
 export default function ProfileScreen() {
   const user = useSelector((state: RootState) => state.auth.user);
   const { palette, mode, toggleTheme } = useThemeMode();
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<ProfileNavigationProp>();
 
   const cardBackground = isDark ? palette.card : '#FFFFFF';
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
@@ -73,38 +79,38 @@ export default function ProfileScreen() {
 
   const accountSettings = useMemo(
     () => [
-      { id: '1', icon: 'account-edit', label: 'Edit Profile', action: () => {} },
-      { id: '2', icon: 'lock-reset', label: 'Change Password', action: () => {} },
-      { id: '3', icon: 'shield-check', label: 'Security Settings', action: () => {} },
-      { id: '4', icon: 'bank', label: 'Payment Methods', action: () => {} },
+      { id: '1', icon: 'account-edit', label: 'Edit Profile', action: () => navigation.navigate('EditProfile') },
+      { id: '2', icon: 'lock-reset', label: 'Change Password', action: () => navigation.navigate('ChangePassword') },
+      { id: '3', icon: 'shield-check', label: 'Security Settings', action: () => navigation.navigate('SecuritySettings') },
+      { id: '4', icon: 'bank', label: 'Payment Methods', action: () => navigation.navigate('PaymentMethods') },
     ],
-    []
+    [navigation]
   );
 
   const preferences = useMemo(
     () => [
-      { id: '1', icon: 'bell-outline', label: 'Notifications', action: () => {} },
-      { id: '2', icon: 'translate', label: 'Language', value: 'English', action: () => {} },
-      { id: '3', icon: 'currency-ngn', label: 'Currency', value: 'NGN (₦)', action: () => {} },
+      { id: '1', icon: 'bell-outline', label: 'Notifications', action: () => navigation.navigate('Notifications') },
+      { id: '2', icon: 'translate', label: 'Language', value: 'English', action: () => Alert.alert('Language', 'Language settings coming soon!') },
+      { id: '3', icon: 'currency-ngn', label: 'Currency', value: 'NGN (₦)', action: () => Alert.alert('Currency', 'Currency settings coming soon!') },
     ],
-    []
+    [navigation]
   );
 
   const supportOptions = useMemo(
     () => [
-      { id: '1', icon: 'help-circle-outline', label: 'Help Center', action: () => {} },
-      { id: '2', icon: 'message-text-outline', label: 'Contact Support', action: () => {} },
-      { id: '3', icon: 'star-outline', label: 'Rate GidiNest', action: () => {} },
-      { id: '4', icon: 'share-variant', label: 'Refer a Friend', action: () => {} },
+      { id: '1', icon: 'help-circle-outline', label: 'Help Center', action: () => Alert.alert('Help Center', 'Visit our help center at help.gidinest.com') },
+      { id: '2', icon: 'message-text-outline', label: 'Contact Support', action: () => Alert.alert('Contact Support', 'Email us at support@gidinest.com or call +234 800 000 0000') },
+      { id: '3', icon: 'star-outline', label: 'Rate GidiNest', action: () => Alert.alert('Rate Us', 'Thank you for using GidiNest! Please rate us on the App Store.') },
+      { id: '4', icon: 'share-variant', label: 'Refer a Friend', action: () => Alert.alert('Refer a Friend', 'Share GidiNest: https://gidinest.com/refer') },
     ],
     []
   );
 
   const legalOptions = useMemo(
     () => [
-      { id: '1', icon: 'file-document-outline', label: 'Terms of Service', action: () => {} },
-      { id: '2', icon: 'shield-lock-outline', label: 'Privacy Policy', action: () => {} },
-      { id: '3', icon: 'information-outline', label: 'About GidiNest', value: 'v1.0.0', action: () => {} },
+      { id: '1', icon: 'file-document-outline', label: 'Terms of Service', action: () => Alert.alert('Terms of Service', 'View our terms at gidinest.com/terms') },
+      { id: '2', icon: 'shield-lock-outline', label: 'Privacy Policy', action: () => Alert.alert('Privacy Policy', 'View our privacy policy at gidinest.com/privacy') },
+      { id: '3', icon: 'information-outline', label: 'About GidiNest', value: 'v1.0.0', action: () => Alert.alert('About GidiNest', 'GidiNest - Your partner in saving for childbirth and your baby.\n\nVersion 1.0.0\n\n© 2024 GidiNest') },
     ],
     []
   );

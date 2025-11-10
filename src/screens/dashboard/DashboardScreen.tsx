@@ -354,9 +354,6 @@ export default function DashboardScreen() {
             </Pressable>
           </Animated.View>
 
-          {/* Separator */}
-          <View style={[styles.sectionSeparator, { backgroundColor: separatorColor }]} />
-
           {/* Quick Actions */}
           <Animated.View style={[styles.section, getAnimatedStyle(quickAnim, 30)]}>
             <RNText style={[styles.sectionTitle, { color: palette.text }]}>
@@ -475,14 +472,19 @@ export default function DashboardScreen() {
               {transactionHistory.map((tx) => (
                 <Pressable
                   key={tx.id}
-                  style={[
+                  style={({ pressed }) => [
                     styles.transactionCard,
                     {
                       backgroundColor: cardBackground,
                       borderColor: separatorColor,
+                      transform: [{ scale: pressed ? 0.97 : 1 }],
+                      opacity: pressed ? 0.9 : 1,
                     },
                   ]}
-                  onPress={() => {}}
+                  onPress={() => {
+                    // @ts-ignore
+                    navigation.navigate('TransactionDetails', { transaction: tx });
+                  }}
                 >
                   <View style={[styles.txIcon, { backgroundColor: featureTint }]}>
                     <MaterialCommunityIcons

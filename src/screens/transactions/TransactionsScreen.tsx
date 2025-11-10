@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 
@@ -38,6 +39,7 @@ export default function TransactionsScreen() {
   const { palette, mode } = useThemeMode();
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -374,14 +376,29 @@ export default function TransactionsScreen() {
                 {txs.map((tx) => (
                   <Pressable
                     key={tx.id}
-                    style={[
+                    style={({ pressed }) => [
                       styles.transactionCard,
                       {
                         backgroundColor: cardBackground,
                         borderColor: separatorColor,
+                        transform: [{ scale: pressed ? 0.97 : 1 }],
+                        opacity: pressed ? 0.9 : 1,
                       },
                     ]}
-                    onPress={() => {}}
+                    onPress={() => {
+                      // @ts-ignore
+                      navigation.navigate('TransactionDetails', {
+                        transaction: {
+                          id: tx.id,
+                          title: tx.title,
+                          description: tx.description,
+                          timestamp: formatDate(tx.date),
+                          amount: tx.amount,
+                          positive: tx.type === 'income',
+                          icon: tx.icon,
+                        },
+                      });
+                    }}
                   >
                     <View style={[styles.transactionIcon, { backgroundColor: tx.color + '1F' }]}>
                       <MaterialCommunityIcons
