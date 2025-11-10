@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingTop: theme.spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? 100 : 85,
+    paddingBottom: Platform.OS === 'ios' ? 90 : 80,
     gap: theme.spacing.lg,
   },
   heroCard: {
