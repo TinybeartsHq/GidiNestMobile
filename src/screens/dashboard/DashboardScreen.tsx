@@ -35,7 +35,10 @@ export default function DashboardScreen() {
 
   const [showBalance, setShowBalance] = useState(true);
 
-  const featureTint = isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(100, 116, 139, 0.08)';
+  // Subtle, balanced colors for light and dark mode
+  const cardBackground = isDark ? 'rgba(15, 23, 42, 0.6)' : '#FFFFFF';
+  const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
+  const separatorColor = isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(148, 163, 184, 0.2)';
 
   const welcomeName = (user as any)?.first_name ?? (user as any)?.name ?? null;
   const maskedBalance = '₦•••,•••';
@@ -47,7 +50,7 @@ export default function DashboardScreen() {
       label: 'Add savings',
       subtitle: 'Top up now',
       color: isDark ? '#93C5FD' : '#2563EB',
-      bgColor: isDark ? 'rgba(59,130,246,0.16)' : '#EFF6FF',
+      bgColor: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(37, 99, 235, 0.08)',
     },
     {
       key: 'goal',
@@ -55,7 +58,7 @@ export default function DashboardScreen() {
       label: 'Create goal',
       subtitle: 'Plan ahead',
       color: isDark ? '#C4B5FD' : '#7C3AED',
-      bgColor: isDark ? 'rgba(147,51,234,0.16)' : '#F5F3FF',
+      bgColor: isDark ? 'rgba(147,51,234,0.12)' : 'rgba(124, 58, 237, 0.08)',
     },
     {
       key: 'automate',
@@ -63,7 +66,7 @@ export default function DashboardScreen() {
       label: 'Automate',
       subtitle: 'Set & forget',
       color: isDark ? '#6EE7B7' : '#059669',
-      bgColor: isDark ? 'rgba(16,185,129,0.16)' : '#ECFDF5',
+      bgColor: isDark ? 'rgba(16,185,129,0.12)' : 'rgba(5, 150, 105, 0.08)',
     },
     {
       key: 'withdraw',
@@ -71,7 +74,7 @@ export default function DashboardScreen() {
       label: 'Withdraw',
       subtitle: 'To your bank',
       color: isDark ? '#FDE68A' : '#D97706',
-      bgColor: isDark ? 'rgba(251,191,36,0.16)' : '#FFFBEB',
+      bgColor: isDark ? 'rgba(251,191,36,0.12)' : 'rgba(217, 119, 6, 0.08)',
     },
   ], [isDark]);
 
@@ -132,7 +135,7 @@ export default function DashboardScreen() {
     <View style={[styles.container, { backgroundColor: palette.background }]}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         {/* Top Bar */}
-        <View style={[styles.topBar, { borderColor: palette.border }]}>
+        <View style={[styles.topBar, { borderColor: separatorColor }]}>
           <View style={styles.topLeft}>
             <RNText style={[styles.greeting, { color: palette.textSecondary }]}>
               {welcomeName ? `Hey ${welcomeName} 👋` : 'Welcome back 👋'}
@@ -154,9 +157,9 @@ export default function DashboardScreen() {
             style={[
               styles.heroCard,
               {
-                borderColor: palette.border,
-                backgroundColor: isDark ? 'rgba(15, 23, 42, 0.96)' : '#FFFFFF',
-                shadowColor: isDark ? '#000000' : 'rgba(148, 163, 184, 0.25)',
+                borderColor: separatorColor,
+                backgroundColor: cardBackground,
+                shadowColor: isDark ? '#000000' : 'rgba(100, 116, 139, 0.15)',
               },
             ]}
           >
@@ -198,6 +201,23 @@ export default function DashboardScreen() {
                 </RNText>
               </View>
             </View>
+
+            {/* Separator */}
+            <View style={[styles.cardSeparator, { backgroundColor: separatorColor }]} />
+
+            {/* Build Nest Button */}
+            <Button
+              mode="contained"
+              icon="plus-circle-outline"
+              onPress={() => {}}
+              buttonColor={palette.primary}
+              textColor="#FFFFFF"
+              style={styles.heroButton}
+              contentStyle={styles.heroButtonContent}
+              labelStyle={styles.heroButtonLabel}
+            >
+              Build your nest
+            </Button>
           </View>
 
           {/* KYC Verification Banner */}
@@ -205,13 +225,13 @@ export default function DashboardScreen() {
             style={[
               styles.kycBanner,
               {
-                backgroundColor: isDark ? 'rgba(124, 58, 237, 0.12)' : 'rgba(139, 92, 246, 0.08)',
-                borderColor: isDark ? 'rgba(167, 139, 250, 0.3)' : 'rgba(139, 92, 246, 0.2)',
+                backgroundColor: isDark ? 'rgba(124, 58, 237, 0.1)' : 'rgba(139, 92, 246, 0.06)',
+                borderColor: isDark ? 'rgba(167, 139, 250, 0.25)' : 'rgba(139, 92, 246, 0.2)',
               },
             ]}
             onPress={() => {}}
           >
-            <View style={[styles.kycIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.2)' : 'rgba(139, 92, 246, 0.15)' }]}>
+            <View style={[styles.kycIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.18)' : 'rgba(139, 92, 246, 0.12)' }]}>
               <MaterialCommunityIcons name="shield-check-outline" size={18} color={palette.primary} />
             </View>
             <View style={styles.kycContent}>
@@ -225,6 +245,9 @@ export default function DashboardScreen() {
             <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
           </Pressable>
 
+          {/* Separator */}
+          <View style={[styles.sectionSeparator, { backgroundColor: separatorColor }]} />
+
           {/* Quick Actions */}
           <View style={styles.section}>
             <RNText style={[styles.sectionTitle, { color: palette.text }]}>
@@ -234,10 +257,16 @@ export default function DashboardScreen() {
               {quickActions.map((action) => (
                 <Pressable
                   key={action.key}
-                  style={[styles.quickActionCard, { backgroundColor: action.bgColor }]}
+                  style={[
+                    styles.quickActionCard,
+                    {
+                      backgroundColor: action.bgColor,
+                      borderColor: separatorColor,
+                    },
+                  ]}
                   onPress={() => {}}
                 >
-                  <View style={[styles.quickActionIcon, { backgroundColor: action.color + '20' }]}>
+                  <View style={[styles.quickActionIcon, { backgroundColor: action.color + '18' }]}>
                     <MaterialCommunityIcons name={action.icon as any} size={20} color={action.color} />
                   </View>
                   <RNText style={[styles.quickActionLabel, { color: palette.text }]}>
@@ -250,6 +279,9 @@ export default function DashboardScreen() {
               ))}
             </View>
           </View>
+
+          {/* Separator */}
+          <View style={[styles.sectionSeparator, { backgroundColor: separatorColor }]} />
 
           {/* Saving Goals Section */}
           {savingGoals.length > 0 && (
@@ -273,8 +305,8 @@ export default function DashboardScreen() {
                       style={[
                         styles.goalCard,
                         {
-                          backgroundColor: isDark ? palette.card : 'rgba(255, 255, 255, 0.9)',
-                          borderColor: palette.border,
+                          backgroundColor: cardBackground,
+                          borderColor: separatorColor,
                         },
                       ]}
                       onPress={() => {}}
@@ -295,7 +327,7 @@ export default function DashboardScreen() {
                       <View
                         style={[
                           styles.progressTrack,
-                          { backgroundColor: isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.18)' },
+                          { backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : 'rgba(148,163,184,0.15)' },
                         ]}
                       >
                         <View
@@ -315,6 +347,9 @@ export default function DashboardScreen() {
             </View>
           )}
 
+          {/* Separator */}
+          <View style={[styles.sectionSeparator, { backgroundColor: separatorColor }]} />
+
           {/* Transaction History */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -333,8 +368,8 @@ export default function DashboardScreen() {
                   style={[
                     styles.transactionCard,
                     {
-                      backgroundColor: isDark ? palette.card : 'rgba(255, 255, 255, 0.9)',
-                      borderColor: palette.border,
+                      backgroundColor: cardBackground,
+                      borderColor: separatorColor,
                     },
                   ]}
                   onPress={() => {}}
@@ -438,10 +473,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     gap: theme.spacing.sm,
-    shadowOpacity: 0.12,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
   heroBadge: {
     flexDirection: 'row',
@@ -495,6 +530,27 @@ const styles = StyleSheet.create({
     fontFamily: 'NeuzeitGro-Medium',
     fontSize: 12,
   },
+  cardSeparator: {
+    width: '100%',
+    height: StyleSheet.hairlineWidth,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
+  },
+  heroButton: {
+    width: '100%',
+    borderRadius: theme.borderRadius.lg,
+    elevation: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  heroButtonContent: {
+    paddingVertical: theme.spacing.xs,
+  },
+  heroButtonLabel: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 15,
+  },
   kycBanner: {
     width: '100%',
     borderRadius: theme.borderRadius.lg,
@@ -522,6 +578,10 @@ const styles = StyleSheet.create({
   kycSubtitle: {
     fontFamily: 'NeuzeitGro-Regular',
     fontSize: 12,
+  },
+  sectionSeparator: {
+    width: '100%',
+    height: StyleSheet.hairlineWidth,
   },
   section: {
     width: '100%',
@@ -551,6 +611,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     gap: theme.spacing.xs,
     minHeight: 100,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   quickActionIcon: {
     width: 36,
