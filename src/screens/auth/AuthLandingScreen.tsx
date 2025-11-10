@@ -73,41 +73,43 @@ export default function AuthLandingScreen() {
                 </View>
               ))}
             </View>
-          </LinearGradient>
 
-          <View style={styles.actionsShell}>
-            <LinearGradient colors={actionTint} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <Button
-              mode="contained"
-              onPress={() => navigation.navigate('SignIn' as never)}
-              style={styles.primaryButton}
-              contentStyle={styles.primaryContent}
-              buttonColor={palette.primary}
-              textColor="#FFFFFF"
-              labelStyle={styles.primaryLabel}
-            >
-              Log in
-            </Button>
-            <Button
-              mode="contained-tonal"
-              onPress={() => navigation.navigate('SignIn' as never)}
-              style={[styles.secondaryButton, { backgroundColor: palette.card }]}
-              contentStyle={styles.secondaryContent}
-              textColor={palette.text}
-              icon="apple"
-              labelStyle={styles.secondaryLabel}
-            >
-              Sign in with Apple
-            </Button>
-            <Button
-              mode="text"
-              onPress={() => navigation.navigate('SignUp' as never)}
-              textColor={paperTheme.colors.primary}
-              labelStyle={styles.linkLabel}
-            >
-              Create a new GidiNest account
-            </Button>
-          </View>
+            {/* Merged actions into hero card */}
+            <View style={styles.actionsInline}>
+              <Button
+                mode="contained"
+                onPress={() => navigation.navigate('SignIn' as never)}
+                style={styles.primaryButton}
+                compact
+                contentStyle={styles.primaryContent}
+                buttonColor={palette.primary}
+                textColor="#FFFFFF"
+                labelStyle={styles.primaryLabel}
+              >
+                Log in
+              </Button>
+              <Button
+                mode="contained-tonal"
+                onPress={() => navigation.navigate('SignIn' as never)}
+                style={[styles.secondaryButton, { backgroundColor: palette.card }]}
+                compact
+                contentStyle={styles.secondaryContent}
+                textColor={palette.text}
+                icon="apple"
+                labelStyle={styles.secondaryLabel}
+              >
+                Sign in with Apple
+              </Button>
+              <Button
+                mode="text"
+                onPress={() => navigation.navigate('SignUp' as never)}
+                textColor={paperTheme.colors.primary}
+                labelStyle={styles.linkLabel}
+              >
+                Create a new GidiNest account
+              </Button>
+            </View>
+          </LinearGradient>
         </View>
       </SafeAreaView>
     </View>
@@ -164,7 +166,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     gap: theme.spacing.lg,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   heroBadge: {
     flexDirection: 'row',
@@ -221,6 +223,11 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 16 },
   },
+  actionsInline: {
+    width: '100%',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.lg,
+  },
   primaryButton: {
     borderRadius: theme.borderRadius.xl,
     elevation: 6,
@@ -230,26 +237,27 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
   },
   primaryContent: {
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
   primaryLabel: {
     fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 16,
+    fontSize: 15,
   },
   secondaryButton: {
     borderRadius: theme.borderRadius.xl,
     elevation: 3,
   },
   secondaryContent: {
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
   secondaryLabel: {
     fontFamily: 'NeuzeitGro-Medium',
-    fontSize: 15,
+    fontSize: 14,
   },
   linkLabel: {
     fontFamily: 'NeuzeitGro-Medium',
     fontSize: 14,
     textDecorationLine: 'underline',
+    letterSpacing: 0.3,
   },
 });

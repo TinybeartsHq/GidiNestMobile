@@ -12,6 +12,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 
@@ -26,6 +27,7 @@ export default function SavingsScreen() {
   const { palette, mode } = useThemeMode();
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -170,6 +172,14 @@ export default function SavingsScreen() {
         accent: isDark ? '#C4B5FD' : '#7C3AED',
         background: isDark ? 'rgba(196,181,253,0.16)' : 'rgba(124,58,237,0.1)',
       },
+      {
+        key: 'gift-registry',
+        icon: 'gift',
+        label: 'Gift registry',
+        subtitle: 'Share with loved ones',
+        accent: isDark ? '#EC4899' : '#DB2777',
+        background: isDark ? 'rgba(236,72,153,0.16)' : 'rgba(236,72,153,0.08)',
+      },
     ],
     [isDark]
   );
@@ -256,7 +266,12 @@ export default function SavingsScreen() {
                   styles.quickActionButton,
                   { backgroundColor: action.background },
                 ]}
-                onPress={() => {}}
+                onPress={() => {
+                  if (action.key === 'gift-registry') {
+                    // @ts-ignore nested navigator
+                    navigation.navigate('Community', { screen: 'GiftRegistry' });
+                  }
+                }}
               >
                 <View
                   style={[
@@ -280,6 +295,36 @@ export default function SavingsScreen() {
                 </View>
               </Pressable>
             ))}
+          </View>
+
+          {/* Gift Registry Promo */}
+          <View
+            style={[
+              styles.registryCard,
+              { backgroundColor: cardBackground, borderColor: separatorColor },
+            ]}
+          >
+            <View style={styles.registryHeaderRow}>
+              <View style={[styles.registryIcon, { backgroundColor: palette.primary + '1F' }]}>
+                <MaterialCommunityIcons name="gift-outline" size={18} color={palette.primary} />
+              </View>
+              <RNText style={[styles.registryTitle, { color: palette.text }]}>Gift registry</RNText>
+            </View>
+            <RNText style={[styles.registryCopy, { color: palette.textSecondary }]}>
+              Create shareable links for everyday support or special occasions.
+            </RNText>
+            <Button
+              mode="contained"
+              onPress={() => {
+                // @ts-ignore nested navigator
+                navigation.navigate('Community', { screen: 'GiftRegistry' });
+              }}
+              buttonColor={palette.primary}
+              textColor="#FFFFFF"
+              style={styles.registryButton}
+            >
+              Open registry
+            </Button>
           </View>
 
           {/* Tabs */}
@@ -590,6 +635,36 @@ const styles = StyleSheet.create({
   quickActionSubtitle: {
     fontFamily: 'NeuzeitGro-Regular',
     fontSize: 12,
+  },
+  registryCard: {
+    borderRadius: theme.borderRadius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.sm,
+  },
+  registryHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  registryIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  registryTitle: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 15,
+  },
+  registryCopy: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 12.5,
+  },
+  registryButton: {
+    alignSelf: 'flex-start',
+    borderRadius: theme.borderRadius.lg,
   },
   tabsContainer: {
     flexDirection: 'row',

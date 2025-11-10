@@ -19,7 +19,7 @@ import { theme } from '../theme/theme';
 
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import SavingsScreen from '../screens/savings/SavingsScreen';
-import CommunityScreen from '../screens/community/CommunityScreen';
+import CommunityNavigator from './CommunityNavigator';
 import TransactionsScreen from '../screens/transactions/TransactionsScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
@@ -76,16 +76,16 @@ function AnimatedTabBar({ state, descriptors, navigation }: any) {
   const horizontalPadding = theme.spacing.lg;
   const availableWidth = Math.max(containerWidth - horizontalPadding * 2, tabCount ? tabCount * 48 : containerWidth);
   const tabWidth = availableWidth / tabCount;
-  const tabsVerticalPadding = Platform.OS === 'ios' ? 6 : 4;
+  const tabsVerticalPadding = Platform.OS === 'ios' ? 4 : 3;
   const indicatorDiameter = Math.min(
     tabWidth - (Platform.OS === 'ios' ? theme.spacing.sm * 1.3 : theme.spacing.sm * 0.95),
-    Platform.OS === 'ios' ? 64 : 68
+    Platform.OS === 'ios' ? 45 : 48
   );
   const indicatorWidth = indicatorDiameter;
   const indicatorHeight = indicatorDiameter;
   const indicatorRadius = indicatorDiameter / 2;
   const indicatorInset = horizontalPadding + (tabWidth - indicatorDiameter) / 2;
-  const indicatorVerticalOffset = Platform.OS === 'ios' ? tabsVerticalPadding + 16 : tabsVerticalPadding + 24;
+  const indicatorVerticalOffset = Platform.OS === 'ios' ? tabsVerticalPadding + 11 : tabsVerticalPadding + 17;
   const maxTranslate = Math.max((tabCount - 1) * tabWidth, 0);
 
   const translateX = useRef(new Animated.Value(state.index * tabWidth)).current;
@@ -336,7 +336,7 @@ function AnimatedTabBar({ state, descriptors, navigation }: any) {
                 <View style={styles.tabContent}>
                   <MaterialCommunityIcons
                     name={isFocused ? tabConfig.activeIcon : tabConfig.inactiveIcon}
-                    size={25}
+                    size={20}
                     color={isFocused ? activeIconColor : palette.textSecondary}
                     style={{ opacity: isFocused ? 1 : 0.7 }}
                   />
@@ -374,7 +374,7 @@ export default function BottomTabNavigator() {
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Savings" component={SavingsScreen} />
       <Tab.Screen name="Transactions" component={TransactionsScreen} />
-      <Tab.Screen name="Community" component={CommunityScreen} />
+      <Tab.Screen name="Community" component={CommunityNavigator} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Platform.OS === 'ios' ? 12 : 14,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 10,
   },
   activeIndicator: {
     position: 'absolute',
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   touchable: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Platform.OS === 'ios' ? 12 : 14,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 10,
     paddingHorizontal: 10,
   },
   touchablePressed: {
@@ -427,9 +427,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontSize: 11,
+    fontSize: 10,
     letterSpacing: 0.2,
-    marginTop: 4,
+    marginTop: 2,
   },
   tabBackground: {
     ...StyleSheet.absoluteFillObject,

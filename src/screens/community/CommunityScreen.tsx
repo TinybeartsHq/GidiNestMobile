@@ -9,6 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
@@ -24,6 +25,7 @@ export default function CommunityScreen() {
   const { palette, mode } = useThemeMode();
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   const [selectedTab, setSelectedTab] = useState<'groups' | 'challenges' | 'leaderboard'>('groups');
 
@@ -349,6 +351,30 @@ export default function CommunityScreen() {
                     </RNText>
                     <RNText style={[styles.discoverSubtitle, { color: palette.textSecondary }]}>
                       Find communities that match your goals
+                    </RNText>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.discoverCard,
+                    {
+                      backgroundColor: featureTint,
+                      borderColor: separatorColor,
+                    },
+                  ]}
+                  onPress={() => {
+                    // @ts-ignore
+                    navigation.navigate('GiftRegistry');
+                  }}
+                >
+                  <MaterialCommunityIcons name="gift-outline" size={24} color={palette.primary} />
+                  <View style={styles.discoverContent}>
+                    <RNText style={[styles.discoverTitle, { color: palette.text }]}>
+                      Gift registry
+                    </RNText>
+                    <RNText style={[styles.discoverSubtitle, { color: palette.textSecondary }]}>
+                      Create links for everyday or special occasions
                     </RNText>
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
