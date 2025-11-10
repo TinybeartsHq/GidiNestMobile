@@ -243,8 +243,16 @@ export default function DashboardScreen() {
             </RNText>
           </View>
           <View style={styles.topActions}>
-            <Pressable style={[styles.topIcon, { backgroundColor: featureTint }]}>
+            <Pressable
+              style={[styles.topIcon, { backgroundColor: featureTint }]}
+              onPress={() => {
+                // @ts-ignore
+                navigation.navigate('Notifications');
+              }}
+            >
               <MaterialCommunityIcons name="bell-outline" size={18} color={palette.text} />
+              {/* Notification Badge */}
+              <View style={[styles.notificationBadge, { backgroundColor: '#EF4444' }]} />
             </Pressable>
           </View>
         </View>
@@ -577,6 +585,14 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   content: {
     paddingTop: theme.spacing.lg,

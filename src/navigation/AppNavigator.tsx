@@ -9,6 +9,7 @@ import HospitalBillsScreen from '../screens/dashboard/HospitalBillsScreen';
 import BabySuppliesScreen from '../screens/dashboard/BabySuppliesScreen';
 import PostpartumCareScreen from '../screens/dashboard/PostpartumCareScreen';
 import TransactionDetailsScreen from '../screens/transactions/TransactionDetailsScreen';
+import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -29,6 +30,7 @@ export default function AppNavigator() {
         <Stack.Screen name="BabySupplies" component={BabySuppliesScreen} />
         <Stack.Screen name="PostpartumCare" component={PostpartumCareScreen} />
         <Stack.Screen name="TransactionDetails" component={TransactionDetailsScreen} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
