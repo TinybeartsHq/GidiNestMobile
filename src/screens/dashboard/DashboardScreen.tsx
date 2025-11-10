@@ -1,17 +1,12 @@
-// @ts-nocheck
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, Text as RNText, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Text as RNText } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSelector } from 'react-redux';
 import { Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import ShapeSquare from '../../assets/background/shape-square.svg';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import type { RootState } from '../../redux/types';
 import { theme } from '../../theme/theme';
-
-const { height } = Dimensions.get('window');
 
 const formatCurrency = (value: number, currency: string) => {
   const mappedCurrency = currency === 'NGN' ? '₦' : currency;
@@ -40,60 +35,65 @@ export default function DashboardScreen() {
 
   const [showBalance, setShowBalance] = useState(true);
 
-  const quickActions = useMemo(() => {
-    const definitions = [
-      {
-        key: 'addSaving',
-        label: 'Add savings',
-        subtitle: 'Top up instantly',
-        icon: 'plus-circle',
-        lightBackground: '#E0F2FE',
-        lightAccent: '#1D4ED8',
-        darkGradient: ['rgba(59,130,246,0.22)', 'rgba(30,58,138,0.78)'],
-        darkAccent: '#93C5FD',
-      },
-      {
-        key: 'createGoal',
-        label: 'Create goal',
-        subtitle: 'Plan milestones',
-        icon: 'flag-variant',
-        lightBackground: '#ECE9FF',
-        lightAccent: '#6D28D9',
-        darkGradient: ['rgba(147,51,234,0.24)', 'rgba(76,29,149,0.82)'],
-        darkAccent: '#C4B5FD',
-      },
-      {
-        key: 'autoSave',
-        label: 'Automate saving',
-        subtitle: 'Keep momentum',
-        icon: 'clock-check-outline',
-        lightBackground: '#ECFDF5',
-        lightAccent: '#047857',
-        darkGradient: ['rgba(16,185,129,0.22)', 'rgba(6,95,70,0.78)'],
-        darkAccent: '#6EE7B7',
-      },
-      {
-        key: 'withdraw',
-        label: 'Withdraw funds',
-        subtitle: 'Move to bank',
-        icon: 'bank-transfer-out',
-        lightBackground: '#FEF3C7',
-        lightAccent: '#B45309',
-        darkGradient: ['rgba(251,191,36,0.24)', 'rgba(180,83,9,0.82)'],
-        darkAccent: '#FDE68A',
-      },
-    ] as const;
+  const featureTint = isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(100, 116, 139, 0.08)';
 
-    return definitions.map((definition) => ({
-      key: definition.key,
-      label: definition.label,
-      subtitle: definition.subtitle,
-      icon: definition.icon,
-      accent: isDark ? definition.darkAccent : definition.lightAccent,
-      gradient: isDark ? (definition.darkGradient as [string, string]) : undefined,
-      background: isDark ? undefined : definition.lightBackground,
-    }));
-  }, [isDark]);
+  const welcomeName = (user as any)?.first_name ?? (user as any)?.name ?? null;
+  const maskedBalance = '₦•••,•••';
+
+  const quickActions = useMemo(() => [
+    {
+      key: 'save',
+      icon: 'plus-circle',
+      label: 'Add savings',
+      subtitle: 'Top up now',
+      color: isDark ? '#93C5FD' : '#2563EB',
+      bgColor: isDark ? 'rgba(59,130,246,0.16)' : '#EFF6FF',
+    },
+    {
+      key: 'goal',
+      icon: 'target-variant',
+      label: 'Create goal',
+      subtitle: 'Plan ahead',
+      color: isDark ? '#C4B5FD' : '#7C3AED',
+      bgColor: isDark ? 'rgba(147,51,234,0.16)' : '#F5F3FF',
+    },
+    {
+      key: 'automate',
+      icon: 'refresh-circle',
+      label: 'Automate',
+      subtitle: 'Set & forget',
+      color: isDark ? '#6EE7B7' : '#059669',
+      bgColor: isDark ? 'rgba(16,185,129,0.16)' : '#ECFDF5',
+    },
+    {
+      key: 'withdraw',
+      icon: 'bank-transfer-out',
+      label: 'Withdraw',
+      subtitle: 'To your bank',
+      color: isDark ? '#FDE68A' : '#D97706',
+      bgColor: isDark ? 'rgba(251,191,36,0.16)' : '#FFFBEB',
+    },
+  ], [isDark]);
+
+  const savingGoals = useMemo(
+    () => [
+      {
+        id: 'goal-1',
+        name: 'Baby essentials',
+        icon: 'baby-face-outline',
+        target: 300000,
+        saved: 180000,
+      },
+      {
+        id: 'goal-2',
+        name: 'Hospital stay',
+        icon: 'hospital-building',
+        target: 250000,
+        saved: 125000,
+      },
+    ],
+    []
+  );
 
   const transactionHistory = useMemo(
     () => [
@@ -104,232 +104,280 @@ export default function DashboardScreen() {
         timestamp: '2 hours ago',
         amount: 20000,
         positive: true,
+        icon: 'plus-circle',
       },
       {
         id: 'tx-2',
         title: 'Goal contribution',
-        description: "Ada’s Education dream",
+        description: "Ada's future fund",
         timestamp: 'Yesterday',
         amount: 10000,
         positive: true,
+        icon: 'target',
       },
       {
         id: 'tx-3',
-        title: 'Withdrawal to bank',
+        title: 'Withdrawal',
         description: 'UBA ••••8190',
-        timestamp: 'Jul 12',
+        timestamp: '3 days ago',
         amount: -5000,
         positive: false,
+        icon: 'bank-transfer-out',
       },
     ],
     []
   );
-
-  const savingGoals = useMemo(
-    () => [
-      {
-        id: 'goal-1',
-        name: 'Baby essentials',
-        target: 300000,
-        saved: 180000,
-      },
-      {
-        id: 'goal-2',
-        name: 'Hospital stay',
-        target: 250000,
-        saved: 125000,
-      },
-    ],
-    []
-  );
-
-  const welcomeName = (user as any)?.first_name ?? (user as any)?.name ?? null;
-  const heroGradient = isDark
-    ? (['rgba(20, 11, 40, 0.85)', 'rgba(2, 6, 23, 0.95)'] as const)
-    : (['rgba(244, 240, 255, 0.85)', 'rgba(248, 250, 252, 1)'] as const);
-
-  const maskedBalance = '₦•••,•••';
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>      
-      <LinearGradient colors={heroGradient} style={styles.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.headerRow}>
-          <Pressable style={[styles.avatar, { backgroundColor: palette.card }]}>
-            <MaterialCommunityIcons name="account" size={20} color={palette.primary} />
-          </Pressable>
-          <View style={styles.headerActions}>
-            <Pressable
-              style={[styles.headerIcon, { backgroundColor: isDark ? 'rgba(148,163,184,0.16)' : 'rgba(100,116,139,0.12)' }]}
-            >
+        {/* Top Bar */}
+        <View style={[styles.topBar, { borderColor: palette.border }]}>
+          <View style={styles.topLeft}>
+            <RNText style={[styles.greeting, { color: palette.textSecondary }]}>
+              {welcomeName ? `Hey ${welcomeName} 👋` : 'Welcome back 👋'}
+            </RNText>
+            <RNText style={[styles.topBadge, { color: palette.text }]}>
+              Your nest today
+            </RNText>
+          </View>
+          <View style={styles.topActions}>
+            <Pressable style={[styles.topIcon, { backgroundColor: featureTint }]}>
               <MaterialCommunityIcons name="bell-outline" size={18} color={palette.text} />
-            </Pressable>
-            <Pressable
-              style={[styles.headerIcon, { backgroundColor: isDark ? 'rgba(148,163,184,0.16)' : 'rgba(100,116,139,0.12)' }]}
-            >
-              <MaterialCommunityIcons name="account-circle-outline" size={18} color={palette.text} />
             </Pressable>
           </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.sectionSpacing}>
-            <RNText style={[styles.sectionTitle, { color: palette.text }]}>Welcome back{welcomeName ? `, ${welcomeName}` : ''}</RNText>
-            <View style={styles.sectionAccent}>
-              <View style={[styles.sectionAccentLine, { backgroundColor: palette.primary }]} />
-            </View>
-            <RNText style={[styles.sectionSubtitle, { color: palette.textSecondary }]}>Your nest is ready for the day’s plans.</RNText>
-          </View>
-
+          {/* Balance Hero Card */}
           <View
             style={[
-              styles.balanceCard,
+              styles.heroCard,
               {
-                backgroundColor: isDark ? palette.card : '#F4F4FF',
-                borderColor: isDark ? palette.border : 'rgba(79, 70, 229, 0.16)',
+                borderColor: palette.border,
+                backgroundColor: isDark ? 'rgba(15, 23, 42, 0.96)' : '#FFFFFF',
+                shadowColor: isDark ? '#000000' : 'rgba(148, 163, 184, 0.25)',
               },
             ]}
           >
-            {!isDark ? (
-              <ShapeSquare width="140%" height="140%" style={styles.balanceShape} pointerEvents="none" />
-            ) : null}
-            <View style={styles.balanceContent}>
-              <View style={styles.balanceHeaderRow}>
-                <RNText style={[styles.balanceLabel, { color: palette.textSecondary }]}>Nest balance</RNText>
-                <Button
-                  mode="text"
-                  icon={showBalance ? 'eye-off-outline' : 'eye-outline'}
-                  onPress={() => setShowBalance((prev) => !prev)}
-                  textColor={palette.primary}
-                  labelStyle={styles.toggleLabel}
-                  contentStyle={styles.toggleContent}
-                >
-                  {showBalance ? 'Hide' : 'View'}
-                </Button>
-              </View>
+            <View style={[styles.heroBadge, { backgroundColor: featureTint }]}>
+              <MaterialCommunityIcons name="sprout" size={13} color={palette.primary} />
+              <RNText style={[styles.heroBadgeText, { color: palette.primary }]}>
+                Growing steadily
+              </RNText>
+            </View>
+
+            <RNText style={[styles.balanceLabel, { color: palette.textSecondary }]}>
+              Total balance
+            </RNText>
+            <View style={styles.balanceRow}>
               <RNText style={[styles.balanceValue, { color: palette.text }]}>
                 {showBalance ? formatCurrency(analytics.totalSavingsBalance, analytics.currency) : maskedBalance}
               </RNText>
-              <Button
-                mode="contained"
-                onPress={() => {}}
-                buttonColor={palette.primary}
-                textColor="#FFFFFF"
-                style={styles.balanceCTA}
-                contentStyle={styles.balanceCTAContent}
-                icon="plus-circle"
-              >
-                Add savings
-              </Button>
+              <Pressable onPress={() => setShowBalance((prev) => !prev)} style={styles.eyeIcon}>
+                <MaterialCommunityIcons
+                  name={showBalance ? 'eye-outline' : 'eye-off-outline'}
+                  size={18}
+                  color={palette.textSecondary}
+                />
+              </Pressable>
             </View>
-          </View>
 
-          <View style={[styles.kycCard, { backgroundColor: isDark ? 'rgba(30, 41, 59, 0.88)' : '#F1F5F9', borderColor: palette.border }] }>
-            <View style={[styles.kycIconBadge, { backgroundColor: isDark ? 'rgba(107,20,109,0.2)' : 'rgba(107,20,109,0.12)' }]}>
-              <MaterialCommunityIcons name="shield-check" size={20} color={palette.primary} />
-            </View>
-            <View style={styles.kycBody}>
-              <View style={styles.kycCopy}>
-                <RNText style={[styles.kycTitle, { color: palette.text }]}>Verify your NIN / KYC</RNText>
-                <RNText style={[styles.kycSubtitle, { color: palette.textSecondary }]}>Finish verification to unlock higher transfer limits.</RNText>
+            {/* Stats Chips */}
+            <View style={styles.statsRow}>
+              <View style={[styles.statChip, { backgroundColor: featureTint }]}>
+                <MaterialCommunityIcons name="target" size={14} color={palette.text} />
+                <RNText style={[styles.statChipText, { color: palette.text }]}>
+                  {analytics.activeGoals} Goals
+                </RNText>
               </View>
-              <Button mode="contained" onPress={() => {}} buttonColor={palette.primary} textColor="#FFFFFF" style={styles.kycButton}>
-                Complete now
-              </Button>
+              <View style={[styles.statChip, { backgroundColor: featureTint }]}>
+                <MaterialCommunityIcons name="calendar-month" size={14} color={palette.text} />
+                <RNText style={[styles.statChipText, { color: palette.text }]}>
+                  {formatCurrency(analytics.monthlyContributions, analytics.currency)}/mo
+                </RNText>
+              </View>
             </View>
           </View>
 
-          <View style={styles.sectionSpacing}>
-            <View style={styles.sectionHeaderRow}>
-              <RNText style={[styles.sectionHeading, { color: palette.text }]}>Quick actions</RNText>
+          {/* KYC Verification Banner */}
+          <Pressable
+            style={[
+              styles.kycBanner,
+              {
+                backgroundColor: isDark ? 'rgba(124, 58, 237, 0.12)' : 'rgba(139, 92, 246, 0.08)',
+                borderColor: isDark ? 'rgba(167, 139, 250, 0.3)' : 'rgba(139, 92, 246, 0.2)',
+              },
+            ]}
+            onPress={() => {}}
+          >
+            <View style={[styles.kycIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.2)' : 'rgba(139, 92, 246, 0.15)' }]}>
+              <MaterialCommunityIcons name="shield-check-outline" size={18} color={palette.primary} />
             </View>
-            <View style={styles.sectionAccent}>
-              <View style={[styles.sectionAccentLine, { backgroundColor: palette.primary }]} />
+            <View style={styles.kycContent}>
+              <RNText style={[styles.kycTitle, { color: palette.text }]}>
+                Verify your account
+              </RNText>
+              <RNText style={[styles.kycSubtitle, { color: palette.textSecondary }]}>
+                Complete KYC for higher limits
+              </RNText>
             </View>
-            <RNText style={[styles.sectionSubtitle, { color: palette.textSecondary }]}>Jump right into what matters.</RNText>
-            <View style={styles.quickActionRow}>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
+          </Pressable>
+
+          {/* Quick Actions */}
+          <View style={styles.section}>
+            <RNText style={[styles.sectionTitle, { color: palette.text }]}>
+              Quick actions
+            </RNText>
+            <View style={styles.quickActionsGrid}>
               {quickActions.map((action) => (
-                <Pressable key={action.key} style={styles.quickActionWrapper} onPress={() => {}}>
-                  {isDark && action.gradient ? (
-                    <LinearGradient colors={action.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.quickActionCard, { shadowColor: '#000000' }]}>
-                      <View style={[styles.quickIconBadge, { backgroundColor: action.accent + '33' }]}>
-                        <MaterialCommunityIcons name={action.icon as any} size={18} color="#F8FAFC" />
-                      </View>
-                      <RNText style={[styles.quickLabel, { color: '#F8FAFC' }]}>{action.label}</RNText>
-                      <RNText style={[styles.quickSubtitle, { color: 'rgba(248,250,252,0.75)' }]}>{action.subtitle}</RNText>
-                    </LinearGradient>
-                  ) : (
-                    <View style={[styles.quickActionCard, { backgroundColor: action.background, shadowColor: action.accent + '22' }]}>
-                      <View style={[styles.quickIconBadge, { backgroundColor: action.accent + '1A' }]}>
-                        <MaterialCommunityIcons name={action.icon as any} size={18} color={action.accent} />
-                      </View>
-                      <RNText style={[styles.quickLabel, { color: palette.text }]}>{action.label}</RNText>
-                      <RNText style={[styles.quickSubtitle, { color: palette.textSecondary }]}>{action.subtitle}</RNText>
-                    </View>
-                  )}
+                <Pressable
+                  key={action.key}
+                  style={[styles.quickActionCard, { backgroundColor: action.bgColor }]}
+                  onPress={() => {}}
+                >
+                  <View style={[styles.quickActionIcon, { backgroundColor: action.color + '20' }]}>
+                    <MaterialCommunityIcons name={action.icon as any} size={20} color={action.color} />
+                  </View>
+                  <RNText style={[styles.quickActionLabel, { color: palette.text }]}>
+                    {action.label}
+                  </RNText>
+                  <RNText style={[styles.quickActionSubtitle, { color: palette.textSecondary }]}>
+                    {action.subtitle}
+                  </RNText>
                 </Pressable>
               ))}
             </View>
           </View>
 
-          <View style={styles.sectionSpacing}>
-            <View style={styles.sectionHeaderRow}>
-              <RNText style={[styles.sectionHeading, { color: palette.text }]}>Transaction history</RNText>
+          {/* Saving Goals Section */}
+          {savingGoals.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <RNText style={[styles.sectionTitle, { color: palette.text }]}>
+                  Your milestones
+                </RNText>
+                <Pressable onPress={() => {}}>
+                  <RNText style={[styles.seeAll, { color: palette.primary }]}>View all</RNText>
+                </Pressable>
+              </View>
+
+              <View style={styles.goalsStack}>
+                {savingGoals.map((goal) => {
+                  const progress = goal.saved / goal.target;
+                  const progressPercent = Math.round(progress * 100);
+                  return (
+                    <Pressable
+                      key={goal.id}
+                      style={[
+                        styles.goalCard,
+                        {
+                          backgroundColor: isDark ? palette.card : 'rgba(255, 255, 255, 0.9)',
+                          borderColor: palette.border,
+                        },
+                      ]}
+                      onPress={() => {}}
+                    >
+                      <View style={styles.goalHeader}>
+                        <View style={[styles.goalIconBadge, { backgroundColor: featureTint }]}>
+                          <MaterialCommunityIcons name={goal.icon as any} size={18} color={palette.primary} />
+                        </View>
+                        <View style={styles.goalInfo}>
+                          <RNText style={[styles.goalTitle, { color: palette.text }]}>
+                            {goal.name}
+                          </RNText>
+                          <RNText style={[styles.goalAmounts, { color: palette.textSecondary }]}>
+                            {formatCurrency(goal.saved, analytics.currency)} • {progressPercent}% there
+                          </RNText>
+                        </View>
+                      </View>
+                      <View
+                        style={[
+                          styles.progressTrack,
+                          { backgroundColor: isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.18)' },
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {
+                              width: `${Math.min(progress * 100, 100)}%`,
+                              backgroundColor: palette.primary,
+                            },
+                          ]}
+                        />
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Transaction History */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <RNText style={[styles.sectionTitle, { color: palette.text }]}>
+                Recent activity
+              </RNText>
               <Pressable onPress={() => {}}>
-                <RNText style={[styles.seeAll, { color: palette.primary }]}>See all</RNText>
+                <RNText style={[styles.seeAll, { color: palette.primary }]}>View all</RNText>
               </Pressable>
             </View>
-            <View style={styles.sectionAccent}>
-              <View style={[styles.sectionAccentLine, { backgroundColor: palette.primary }]} />
-            </View>
-            <RNText style={[styles.sectionSubtitle, { color: palette.textSecondary }]}>Keep tabs on the latest activity.</RNText>
-            <View style={styles.listStack}>
-              {transactionHistory.map((item) => (
-                <View key={item.id} style={[styles.transactionCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
-                  <View style={styles.transactionRow}>
-                    <View>
-                      <RNText style={[styles.transactionTitle, { color: palette.text }]}>{item.title}</RNText>
-                      <RNText style={[styles.transactionDescription, { color: palette.textSecondary }]}>{item.description}</RNText>
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <RNText style={[styles.transactionAmount, { color: item.positive ? '#16A34A' : '#DC2626' }]}
-                      >{`${item.positive ? '+' : ''}${formatCurrency(Math.abs(item.amount), analytics.currency)}`}</RNText>
-                      <RNText style={[styles.transactionTimestamp, { color: palette.textSecondary }]}>{item.timestamp}</RNText>
-                    </View>
+
+            <View style={styles.transactionStack}>
+              {transactionHistory.map((tx) => (
+                <Pressable
+                  key={tx.id}
+                  style={[
+                    styles.transactionCard,
+                    {
+                      backgroundColor: isDark ? palette.card : 'rgba(255, 255, 255, 0.9)',
+                      borderColor: palette.border,
+                    },
+                  ]}
+                  onPress={() => {}}
+                >
+                  <View style={[styles.txIcon, { backgroundColor: featureTint }]}>
+                    <MaterialCommunityIcons
+                      name={tx.icon as any}
+                      size={16}
+                      color={tx.positive ? (isDark ? '#6EE7B7' : '#059669') : (isDark ? '#FCA5A5' : '#DC2626')}
+                    />
                   </View>
-                </View>
+                  <View style={styles.txContent}>
+                    <RNText style={[styles.txTitle, { color: palette.text }]}>
+                      {tx.title}
+                    </RNText>
+                    <RNText style={[styles.txDescription, { color: palette.textSecondary }]}>
+                      {tx.description} • {tx.timestamp}
+                    </RNText>
+                  </View>
+                  <RNText
+                    style={[
+                      styles.txAmount,
+                      {
+                        color: tx.positive
+                          ? (isDark ? '#6EE7B7' : '#059669')
+                          : (isDark ? '#FCA5A5' : '#DC2626'),
+                      },
+                    ]}
+                  >
+                    {tx.positive ? '+' : ''}
+                    {formatCurrency(Math.abs(tx.amount), analytics.currency)}
+                  </RNText>
+                </Pressable>
               ))}
             </View>
           </View>
 
-          <View style={[styles.sectionSpacing, { marginBottom: theme.spacing.xl * 1.5 }] }>
-            <View style={styles.sectionHeaderRow}>
-              <RNText style={[styles.sectionHeading, { color: palette.text }]}>Saving goals</RNText>
-              <Pressable onPress={() => {}}>
-                <RNText style={[styles.seeAll, { color: palette.primary }]}>See all</RNText>
-              </Pressable>
-            </View>
-            <View style={styles.sectionAccent}>
-              <View style={[styles.sectionAccentLine, { backgroundColor: palette.primary }]} />
-            </View>
-            <RNText style={[styles.sectionSubtitle, { color: palette.textSecondary }]}>Keep an eye on your nest milestones.</RNText>
-            <View style={styles.listStack}>
-              {savingGoals.map((goal) => {
-                const progress = goal.saved / goal.target;
-                return (
-                  <View key={goal.id} style={[styles.goalCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
-                    <View style={styles.goalHeader}>
-                      <MaterialCommunityIcons name="target-variant" size={18} color={palette.primary} />
-                      <RNText style={[styles.goalTitle, { color: palette.text }]}>{goal.name}</RNText>
-                    </View>
-                    <RNText style={[styles.goalAmounts, { color: palette.textSecondary }]}> {formatCurrency(goal.saved, analytics.currency)} saved of {formatCurrency(goal.target, analytics.currency)} </RNText>
-                    <View style={[styles.progressTrack, { backgroundColor: isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.18)' }] }>
-                      <View style={[styles.progressFill, { width: `${Math.min(progress * 100, 100)}%`, backgroundColor: palette.primary }]} />
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
+          {/* Encouraging Footer */}
+          <View style={[styles.encouragementCard, { backgroundColor: featureTint }]}>
+            <MaterialCommunityIcons name="hand-heart" size={18} color={palette.primary} />
+            <RNText style={[styles.encouragementText, { color: palette.textSecondary }]}>
+              You're building something beautiful, one step at a time.
+            </RNText>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -341,254 +389,222 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: height * 0.26,
-  },
   safeArea: {
     flex: 1,
     paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
   },
-  headerRow: {
+  topBar: {
+    width: '100%',
+    paddingVertical: theme.spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#00000018',
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-  },
-  headerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    paddingBottom: theme.spacing.xl * 2,
-    gap: theme.spacing.xl,
-  },
-  sectionSpacing: {
-    gap: theme.spacing.xs,
-  },
-  sectionTitle: {
-    fontFamily: 'NeuzeitGro-ExtraBold',
-    fontSize: 28,
-    letterSpacing: -0.6,
-  },
-  sectionSubtitle: {
-    fontFamily: 'NeuzeitGro-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  sectionHeading: {
-    fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 18,
-  },
-  balanceCard: {
-    width: '100%',
-    borderRadius: theme.borderRadius.xl + 6,
-    padding: theme.spacing.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: '#00000010',
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 12 },
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  balanceContent: {
-    gap: theme.spacing.sm,
-  },
-  balanceHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  balanceLabel: {
-    fontFamily: 'NeuzeitGro-Regular',
-    fontSize: 14,
-  },
-  balanceValue: {
-    fontFamily: 'NeuzeitGro-ExtraBold',
-    fontSize: 36,
-    letterSpacing: -0.8,
-  },
-  toggleLabel: {
-    fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 14,
-  },
-  toggleContent: {
-    paddingHorizontal: theme.spacing.xs,
-  },
-  balanceCTA: {
-    alignSelf: 'stretch',
-    borderRadius: theme.borderRadius.lg,
-    marginTop: theme.spacing.md,
-  },
-  balanceCTAContent: {
-    paddingVertical: theme.spacing.sm,
-  },
-  balanceShape: {
-    position: 'absolute',
-    top: -60,
-    right: -72,
-    opacity: 0.4,
-  },
-  kycCard: {
-    width: '100%',
-    borderRadius: theme.borderRadius.xl + 4,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: theme.spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: theme.spacing.md,
-  },
-  kycIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  kycBody: {
-    flex: 1,
-    gap: theme.spacing.sm,
-  },
-  kycCopy: {
+  topLeft: {
     flex: 1,
     gap: theme.spacing.xs / 2,
   },
-  kycTitle: {
-    fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 16,
-  },
-  kycSubtitle: {
+  greeting: {
     fontFamily: 'NeuzeitGro-Regular',
     fontSize: 13,
-    lineHeight: 18,
   },
-  kycButton: {
-    borderRadius: theme.borderRadius.lg,
-    alignSelf: 'flex-start',
-    marginTop: 0,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  seeAll: {
+  topBadge: {
     fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 13,
+    fontSize: 16,
+    letterSpacing: 0.2,
   },
-  quickActionRow: {
+  topActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: theme.spacing.sm,
+    gap: theme.spacing.sm,
   },
-  quickActionWrapper: {
-    width: '48%',
-    minWidth: 152,
-    flexGrow: 1,
-  },
-  quickActionCard: {
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.xs,
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 10 },
-  },
-  quickIconBadge: {
+  topIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickLabel: {
-    fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 15,
+  content: {
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl * 2,
+    gap: theme.spacing.lg,
   },
-  quickSubtitle: {
+  heroCard: {
+    width: '100%',
+    borderRadius: theme.borderRadius.xl + 4,
+    padding: theme.spacing.lg + theme.spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    shadowOpacity: 0.12,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 4,
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs / 2,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs / 2,
+    borderRadius: theme.borderRadius.md,
+  },
+  heroBadgeText: {
+    fontFamily: 'NeuzeitGro-Medium',
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
+  balanceLabel: {
     fontFamily: 'NeuzeitGro-Regular',
     fontSize: 13,
+    textAlign: 'center',
+    marginTop: theme.spacing.xs,
   },
-  listStack: {
-    gap: theme.spacing.sm,
-  },
-  transactionCard: {
-    width: '100%',
-    borderRadius: theme.borderRadius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: theme.spacing.lg,
+  balanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: theme.spacing.xs,
   },
-  transactionRow: {
+  balanceValue: {
+    fontFamily: 'NeuzeitGro-ExtraBold',
+    fontSize: 34,
+    textAlign: 'center',
+    letterSpacing: -0.8,
+  },
+  eyeIcon: {
+    padding: theme.spacing.xs / 2,
+  },
+  statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: theme.spacing.xs,
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginTop: theme.spacing.xs,
+  },
+  statChip: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: theme.spacing.xs / 2,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs / 2,
+    borderRadius: theme.borderRadius.md,
   },
-  transactionTitle: {
+  statChipText: {
+    fontFamily: 'NeuzeitGro-Medium',
+    fontSize: 12,
+  },
+  kycBanner: {
+    width: '100%',
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    borderWidth: 1,
+  },
+  kycIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kycContent: {
+    flex: 1,
+    gap: theme.spacing.xs / 4,
+  },
+  kycTitle: {
     fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 15,
+    fontSize: 14,
   },
-  transactionDescription: {
-    fontFamily: 'NeuzeitGro-Regular',
-    fontSize: 13,
-    marginTop: theme.spacing.xs / 2,
-  },
-  transactionAmount: {
-    fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 15,
-  },
-  transactionTimestamp: {
+  kycSubtitle: {
     fontFamily: 'NeuzeitGro-Regular',
     fontSize: 12,
+  },
+  section: {
+    width: '100%',
+    gap: theme.spacing.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionTitle: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 17,
+  },
+  seeAll: {
+    fontFamily: 'NeuzeitGro-Medium',
+    fontSize: 13,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  quickActionCard: {
+    width: '48%',
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    gap: theme.spacing.xs,
+    minHeight: 100,
+  },
+  quickActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionLabel: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 14,
     marginTop: theme.spacing.xs / 2,
+  },
+  quickActionSubtitle: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 12,
+  },
+  goalsStack: {
+    gap: theme.spacing.sm,
   },
   goalCard: {
     width: '100%',
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.xs,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   goalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.xs,
+    gap: theme.spacing.sm,
+  },
+  goalIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalInfo: {
+    flex: 1,
+    gap: theme.spacing.xs / 4,
   },
   goalTitle: {
     fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 15,
+    fontSize: 14,
   },
   goalAmounts: {
     fontFamily: 'NeuzeitGro-Regular',
-    fontSize: 13,
+    fontSize: 12,
   },
   progressTrack: {
     width: '100%',
-    height: 6,
+    height: 5,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -596,15 +612,53 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 3,
   },
-  sectionAccent: {
+  transactionStack: {
+    gap: theme.spacing.xs,
+  },
+  transactionCard: {
+    width: '100%',
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: theme.spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: theme.spacing.xs / 2,
-    marginBottom: theme.spacing.xs / 2,
+    gap: theme.spacing.sm,
   },
-  sectionAccentLine: {
+  txIcon: {
     width: 36,
-    height: 3,
-    borderRadius: 999,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  txContent: {
+    flex: 1,
+    gap: theme.spacing.xs / 4,
+  },
+  txTitle: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 14,
+  },
+  txDescription: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 12,
+  },
+  txAmount: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 14,
+  },
+  encouragementCard: {
+    width: '100%',
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  encouragementText: {
+    flex: 1,
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
