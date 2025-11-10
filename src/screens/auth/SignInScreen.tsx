@@ -8,16 +8,14 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ScrollView,
+  Alert,
 } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text, TextInput, Button, Snackbar, HelperText, Checkbox, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { loginUser, clearError } from '../../redux/auth';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
-import type { RootState, AppDispatch } from '../../redux/types';
 
 const { height } = Dimensions.get('window');
 
@@ -25,8 +23,6 @@ const PHONE_REGEX = /^\+?[0-9]{7,15}$/;
 
 export default function SignInScreen() {
   const navigation = useNavigation();
-  const dispatch = useDispatch<AppDispatch>();
-  const { loading, error, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const { mode, palette } = useThemeMode();
   const isDark = mode === 'dark';
 
@@ -43,6 +39,8 @@ export default function SignInScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ phone: boolean; password: boolean }>({
     phone: false,
     password: false,
@@ -107,19 +105,6 @@ export default function SignInScreen() {
     [palette, isDark, borderNeutral, inputBackground]
   );
 
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      // @ts-ignore - navigation type will be configured later
-      navigation.replace('Dashboard');
-    }
-  }, [isAuthenticated, navigation]);
-
-  React.useEffect(() => {
-    if (error) {
-      setSnackbarVisible(true);
-    }
-  }, [error]);
-
   const phoneError = useMemo(() => {
     if (!touched.phone) return '';
     if (!phoneNumber.trim()) return 'Phone number is required.';
@@ -141,28 +126,24 @@ export default function SignInScreen() {
 
     if (!isFormValid) {
       setTouched({ phone: true, password: true });
+      setErrorMessage('Please fix the highlighted fields.');
+      setSnackbarVisible(true);
       return;
     }
 
-    const credentials = {
-      login_type: 'password' as const,
-      password: password.trim(),
-      login_with: 'phone' as const,
-      phone: phoneNumber.trim(),
-      remember: rememberMe,
-    };
+    setErrorMessage(null);
+    setLoading(true);
 
-    const result = await dispatch(loginUser(credentials));
-
-    if (loginUser.fulfilled.match(result)) {
+    setTimeout(() => {
+      setLoading(false);
       // @ts-ignore - navigation type will be configured later
       navigation.replace('Dashboard');
-    }
-  }, [dispatch, navigation, isFormValid, phoneNumber, password, rememberMe]);
+    }, 600);
+  }, [isFormValid, navigation, password, phoneNumber]);
 
   const handleDismissSnackbar = () => {
     setSnackbarVisible(false);
-    dispatch(clearError());
+    setErrorMessage(null);
   };
 
   const handlePhoneSubmit = () => {
@@ -237,7 +218,7 @@ export default function SignInScreen() {
                     textContentType="telephoneNumber"
                     error={!!phoneError}
                   />
-                  <HelperText type="error" visible={!!phoneError} style={[styles.helperText, dynamicStyles.helperError]}>
+                  <HelperText type="error" visible={!!phoneError} style={styles.helperText}>
                     {phoneError}
                   </HelperText>
 
@@ -269,7 +250,7 @@ export default function SignInScreen() {
                     textContentType="password"
                     error={!!passwordError}
                   />
-                  <HelperText type="error" visible={!!passwordError} style={[styles.helperText, dynamicStyles.helperError]}>
+                  <HelperText type="error" visible={!!passwordError} style={styles.helperText}>
                     {passwordError}
                   </HelperText>
 
@@ -285,8 +266,7 @@ export default function SignInScreen() {
                       labelStyle={styles.linkText}
                       onPress={() => {
                         Keyboard.dismiss();
-                        // @ts-ignore - navigation type will be configured later
-                        navigation.navigate('ForgotPassword');
+                        Alert.alert('Forgot password', 'Password recovery will be available soon.');
                       }}
                     >
                       Forgot password?
@@ -298,7 +278,7 @@ export default function SignInScreen() {
                     onPress={handleSignIn}
                     loading={loading}
                     disabled={loading || !isFormValid}
-                    style={[styles.button, dynamicStyles.button]}
+                    style={styles.button}
                     contentStyle={styles.buttonContent}
                     buttonColor={palette.primary}
                     textColor="#FFFFFF"
@@ -346,7 +326,7 @@ export default function SignInScreen() {
           }}
           style={[styles.snackbar, dynamicStyles.snackbar]}
         >
-          {error || 'An error occurred'}
+          {errorMessage || 'An error occurred'}
         </Snackbar>
       </View>
     </TouchableWithoutFeedback>
