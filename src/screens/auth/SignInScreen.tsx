@@ -12,7 +12,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Text, TextInput, Button, Snackbar, HelperText, Checkbox } from 'react-native-paper';
+import { Text, TextInput, Button, Snackbar, HelperText, Checkbox, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { loginUser, clearError } from '../../redux/auth';
 import { useThemeMode } from '../../theme/ThemeProvider';
@@ -31,6 +31,12 @@ export default function SignInScreen() {
   const isDark = mode === 'dark';
 
   const passwordInputRef = useRef<any>(null);
+  const textInputTheme = useMemo(
+    () => ({
+      roundness: theme.borderRadius.lg,
+    }),
+    []
+  );
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
@@ -54,7 +60,7 @@ export default function SignInScreen() {
         backgroundColor: palette.background,
       },
       formCard: {
-        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.94)' : '#FFFFFF',
+        backgroundColor: 'transparent',
         borderColor: borderNeutral,
         shadowColor: isDark ? '#000000' : 'rgba(15, 23, 42, 0.08)',
       },
@@ -164,6 +170,17 @@ export default function SignInScreen() {
     Keyboard.dismiss();
   };
 
+  const handleBack = useCallback(() => {
+    // @ts-ignore
+    if ('canGoBack' in navigation && navigation.canGoBack()) {
+      // @ts-ignore
+      navigation.goBack();
+    } else {
+      // @ts-ignore
+      navigation.navigate('AuthLanding');
+    }
+  }, [navigation]);
+
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <View style={[styles.container, dynamicStyles.container]}>
@@ -179,18 +196,19 @@ export default function SignInScreen() {
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              <View style={styles.contentContainer}>
+              <View style={styles.contentShell}>
                 <View style={styles.headingBlock}>
-                  <Text style={[styles.brand, { color: palette.primary }]}>GidiNest</Text>
-                  <Text style={[styles.heading, dynamicStyles.title]}>Welcome back</Text>
-                  <Text style={[styles.tagline, dynamicStyles.subtitle]}>
-                    Sign in with your phone number to keep building your family&apos;s nest.
+                  <IconButton icon="arrow-left" onPress={handleBack} accessibilityLabel="Go back" />
+                  <Text style={[styles.heroTitle, dynamicStyles.title]}>Welcome back, guardian</Text>
+                  <Text style={[styles.heroSubtitle, dynamicStyles.subtitle]}>
+                    Sign in with your phone number to keep your nest growing steadily.
                   </Text>
                 </View>
 
-                <View style={[styles.formCard, dynamicStyles.formCard]}>
+                <View style={[styles.formBlock, dynamicStyles.formCard]}>
+                  <Text style={[styles.fieldTitle, { color: palette.text }]}>Phone number</Text>
                   <TextInput
-                    label="Phone number"
+                    theme={textInputTheme}
                     value={phoneNumber}
                     onChangeText={(value) => setPhoneNumber(value)}
                     onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
@@ -214,9 +232,10 @@ export default function SignInScreen() {
                     {phoneError}
                   </HelperText>
 
+                  <Text style={[styles.fieldTitle, { color: palette.text }]}>Password</Text>
                   <TextInput
                     ref={passwordInputRef}
-                    label="Password"
+                    theme={textInputTheme}
                     value={password}
                     onChangeText={(value) => setPassword(value)}
                     onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
@@ -344,55 +363,60 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: theme.spacing.xl,
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: Math.max(theme.spacing.xl, 48),
+    paddingBottom: theme.spacing.xl * 2,
   },
-  contentContainer: {
-    width: '100%',
-    alignItems: 'center',
-    gap: theme.spacing.lg,
+  contentShell: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.xl,
+    gap: theme.spacing.md,
   },
   headingBlock: {
-    width: '100%',
-    alignItems: 'flex-start',
     gap: theme.spacing.xs,
+    alignItems: 'flex-start',
+  },
+  headingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   brand: {
-    fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 16,
-    letterSpacing: 1,
+    fontFamily: 'NeuzeitGro-Bold',
+    fontSize: 18,
+    letterSpacing: 0.8,
   },
-  heading: {
+  brandAction: {
+    fontFamily: 'NeuzeitGro-Medium',
+    fontSize: 14,
+  },
+  heroTitle: {
     fontFamily: 'NeuzeitGro-ExtraBold',
     fontSize: 28,
-    lineHeight: 32,
+    lineHeight: 34,
   },
-  tagline: {
+  heroSubtitle: {
     fontFamily: 'NeuzeitGro-Regular',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
-  formCard: {
+  formBlock: {
     width: '100%',
-    borderRadius: theme.borderRadius.xl + 4,
-    padding: theme.spacing.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    elevation: 5,
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xs * 0.75,
   },
   input: {
-    marginBottom: theme.spacing.xs * 0.5,
-    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.xs * 0.15,
+    borderRadius: theme.borderRadius.lg,
   },
   passwordInput: {
-    marginTop: theme.spacing.xs * 0.5,
+    marginTop: theme.spacing.xs * 0.15,
   },
   helperText: {
-    marginBottom: theme.spacing.xs * 0.5,
+    marginBottom: theme.spacing.xs * 0.15,
+  },
+  fieldTitle: {
+    fontFamily: 'NeuzeitGro-Medium',
+    fontSize: 13,
+    letterSpacing: 0.4,
+    marginTop: theme.spacing.xs * 0.6,
   },
   inputContent: {
     fontSize: 16,
@@ -430,7 +454,7 @@ const styles = StyleSheet.create({
   },
   registerContainer: {
     alignItems: 'center',
-    marginTop: theme.spacing.sm,
+    marginTop: 0,
   },
   registerText: {
     fontSize: 14,
@@ -443,7 +467,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     lineHeight: 18,
-    marginTop: theme.spacing.md,
+    marginTop: 0,
   },
   snackbar: {
     marginBottom: theme.spacing.xl,
