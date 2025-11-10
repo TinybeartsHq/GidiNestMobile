@@ -80,7 +80,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
         ]}
       >
         <Image
-          source={require('../../assets/Logo 2.png')}
+          source={require('../../assets/icon.png')}
           style={styles.logo}
           contentFit="contain"
         />
