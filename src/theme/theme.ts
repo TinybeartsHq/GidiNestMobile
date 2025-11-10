@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { MD3DarkTheme, MD3LightTheme, configureFonts } from 'react-native-paper';
 
 export type ThemeMode = 'light' | 'dark';
@@ -17,50 +18,57 @@ export const borderRadius = {
   xl: 16,
 };
 
+const fontFamilyFor = (weight: 'Regular' | 'Medium' | 'SemiBold' | 'Bold' | 'ExtraBold') =>
+  Platform.select({
+    ios: `NeuzeitGro-${weight}`,
+    android: `NeuzeitGro-${weight}`,
+    default: `NeuzeitGro-${weight}`,
+  });
+
 export const typography = {
   h1: {
     fontSize: 32,
-    fontWeight: 'bold' as const,
-    fontFamily: 'Inter_700Bold' as const,
+    fontWeight: '700' as const,
+    fontFamily: fontFamilyFor('ExtraBold') as const,
   },
   h2: {
     fontSize: 24,
-    fontWeight: 'bold' as const,
-    fontFamily: 'Inter_700Bold' as const,
+    fontWeight: '700' as const,
+    fontFamily: fontFamilyFor('Bold') as const,
   },
   h3: {
     fontSize: 20,
     fontWeight: '600' as const,
-    fontFamily: 'Inter_600SemiBold' as const,
+    fontFamily: fontFamilyFor('SemiBold') as const,
   },
   body: {
     fontSize: 16,
     fontWeight: '400' as const,
-    fontFamily: 'Inter_400Regular' as const,
+    fontFamily: fontFamilyFor('Regular') as const,
   },
   caption: {
     fontSize: 14,
     fontWeight: '400' as const,
-    fontFamily: 'Inter_400Regular' as const,
+    fontFamily: fontFamilyFor('Regular') as const,
   },
 };
 
 const fontConfig = {
-  displayLarge: { fontFamily: 'Inter_700Bold', fontWeight: '700' as const },
-  displayMedium: { fontFamily: 'Inter_700Bold', fontWeight: '700' as const },
-  displaySmall: { fontFamily: 'Inter_600SemiBold', fontWeight: '600' as const },
-  headlineLarge: { fontFamily: 'Inter_700Bold', fontWeight: '700' as const },
-  headlineMedium: { fontFamily: 'Inter_600SemiBold', fontWeight: '600' as const },
-  headlineSmall: { fontFamily: 'Inter_600SemiBold', fontWeight: '600' as const },
-  titleLarge: { fontFamily: 'Inter_600SemiBold', fontWeight: '600' as const },
-  titleMedium: { fontFamily: 'Inter_600SemiBold', fontWeight: '600' as const },
-  titleSmall: { fontFamily: 'Inter_500Medium', fontWeight: '500' as const },
-  labelLarge: { fontFamily: 'Inter_600SemiBold', fontWeight: '600' as const },
-  labelMedium: { fontFamily: 'Inter_500Medium', fontWeight: '500' as const },
-  labelSmall: { fontFamily: 'Inter_500Medium', fontWeight: '500' as const },
-  bodyLarge: { fontFamily: 'Inter_400Regular', fontWeight: '400' as const },
-  bodyMedium: { fontFamily: 'Inter_400Regular', fontWeight: '400' as const },
-  bodySmall: { fontFamily: 'Inter_400Regular', fontWeight: '400' as const },
+  displayLarge: { fontFamily: fontFamilyFor('ExtraBold'), fontWeight: '700' as const },
+  displayMedium: { fontFamily: fontFamilyFor('Bold'), fontWeight: '700' as const },
+  displaySmall: { fontFamily: fontFamilyFor('SemiBold'), fontWeight: '600' as const },
+  headlineLarge: { fontFamily: fontFamilyFor('ExtraBold'), fontWeight: '700' as const },
+  headlineMedium: { fontFamily: fontFamilyFor('Bold'), fontWeight: '700' as const },
+  headlineSmall: { fontFamily: fontFamilyFor('SemiBold'), fontWeight: '600' as const },
+  titleLarge: { fontFamily: fontFamilyFor('SemiBold'), fontWeight: '600' as const },
+  titleMedium: { fontFamily: fontFamilyFor('Medium'), fontWeight: '500' as const },
+  titleSmall: { fontFamily: fontFamilyFor('Medium'), fontWeight: '500' as const },
+  labelLarge: { fontFamily: fontFamilyFor('SemiBold'), fontWeight: '600' as const },
+  labelMedium: { fontFamily: fontFamilyFor('Medium'), fontWeight: '500' as const },
+  labelSmall: { fontFamily: fontFamilyFor('Medium'), fontWeight: '500' as const },
+  bodyLarge: { fontFamily: fontFamilyFor('Regular'), fontWeight: '400' as const },
+  bodyMedium: { fontFamily: fontFamilyFor('Regular'), fontWeight: '400' as const },
+  bodySmall: { fontFamily: fontFamilyFor('Regular'), fontWeight: '400' as const },
 };
 
 const lightPalette = {

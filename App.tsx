@@ -14,7 +14,7 @@ SplashScreen.preventAutoHideAsync();
 function AppContent() {
   const [isSplashReady, setIsSplashReady] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
-  const { mode } = useThemeMode();
+  const { mode, palette } = useThemeMode();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -53,8 +53,8 @@ function AppContent() {
       <AppNavigator />
       <StatusBar
         style={statusBarStyle}
-        backgroundColor="transparent"
-        translucent
+        backgroundColor={palette.background}
+        translucent={false}
       />
     </>
   );

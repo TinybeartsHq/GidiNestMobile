@@ -23,9 +23,7 @@ type ThemeProviderProps = {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const systemScheme = useColorScheme();
-  const [mode, setMode] = useState<ThemeMode>(
-    systemScheme === 'dark' ? 'dark' : 'light'
-  );
+  const [mode, setMode] = useState<ThemeMode>(systemScheme === 'dark' ? 'dark' : 'light');
 
   const palette = useMemo(() => getAppColors(mode), [mode]);
   const paperTheme = useMemo(() => createPaperTheme(mode), [mode]);
@@ -54,4 +52,3 @@ export function useThemeMode() {
   }
   return context;
 }
-
