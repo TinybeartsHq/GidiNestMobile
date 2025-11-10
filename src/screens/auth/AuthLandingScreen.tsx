@@ -58,7 +58,7 @@ export default function AuthLandingScreen() {
         <View style={styles.content}>
           <LinearGradient colors={heroCardGradient} style={[styles.heroCard, { borderColor: palette.border }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <View style={[styles.heroBadge, { backgroundColor: featureTint }]}>
-              <MaterialCommunityIcons name="auto-renew" size={14} color={palette.primary} />
+              <MaterialCommunityIcons name="refresh-auto" size={14} color={palette.primary} />
               <Text style={[styles.heroBadgeText, { color: palette.primary }]}>Baby-day ready</Text>
             </View>
             <Text style={[styles.title, { color: palette.text }]}>Baby-day savings, on autopilot.</Text>
