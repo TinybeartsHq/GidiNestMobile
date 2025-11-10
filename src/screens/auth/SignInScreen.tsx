@@ -137,7 +137,7 @@ export default function SignInScreen() {
     setTimeout(() => {
       setLoading(false);
       // @ts-ignore - navigation type will be configured later
-      navigation.replace('Dashboard');
+      navigation.replace('MainApp');
     }, 600);
   }, [isFormValid, navigation, password, phoneNumber]);
 

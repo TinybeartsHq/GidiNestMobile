@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, Text as RNText } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Text as RNText, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { Button } from 'react-native-paper';
@@ -133,7 +133,7 @@ export default function DashboardScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Top Bar */}
         <View style={[styles.topBar, { borderColor: separatorColor }]}>
           <View style={styles.topLeft}>
@@ -427,7 +427,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl,
   },
   topBar: {
     width: '100%',
@@ -463,7 +462,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingTop: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl * 2,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 85,
     gap: theme.spacing.lg,
   },
   heroCard: {
