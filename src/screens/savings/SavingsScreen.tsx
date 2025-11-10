@@ -61,43 +61,43 @@ export default function SavingsScreen() {
     () => [
       {
         id: 'goal-1',
-        name: "Ada's Education Fund",
-        icon: 'school-outline',
-        target: 800000,
-        saved: 420000,
-        accent: isDark ? '#93C5FD' : '#2563EB',
-        deadline: 'Dec 2025',
-        category: 'Education',
+        name: 'Hospital Delivery Bills',
+        icon: 'hospital-building',
+        target: 500000,
+        saved: 250000,
+        accent: isDark ? '#FCA5A5' : '#DC2626',
+        deadline: 'Due Date',
+        category: 'Medical',
       },
       {
         id: 'goal-2',
-        name: 'Baby Essentials',
+        name: 'Baby Clothes & Supplies',
         icon: 'baby-carriage',
-        target: 250000,
-        saved: 160000,
-        accent: isDark ? '#FCA5A5' : '#DC2626',
-        deadline: 'Aug 2024',
-        category: 'Family',
+        target: 300000,
+        saved: 180000,
+        accent: isDark ? '#FDE68A' : '#D97706',
+        deadline: 'Before Birth',
+        category: 'Essentials',
       },
       {
         id: 'goal-3',
-        name: 'Emergency Fund',
+        name: 'Emergency Medical Fund',
         icon: 'shield-heart',
-        target: 500000,
-        saved: 310000,
+        target: 200000,
+        saved: 125000,
         accent: isDark ? '#6EE7B7' : '#059669',
-        deadline: 'Jan 2026',
-        category: 'Security',
+        deadline: 'Anytime',
+        category: 'Safety Net',
       },
       {
         id: 'goal-4',
-        name: 'New Home',
-        icon: 'home-heart',
-        target: 2000000,
-        saved: 660000,
+        name: 'Postpartum Support',
+        icon: 'heart-pulse',
+        target: 250000,
+        saved: 95000,
         accent: isDark ? '#C4B5FD' : '#7C3AED',
-        deadline: 'Dec 2026',
-        category: 'Property',
+        deadline: 'After Birth',
+        category: 'Recovery',
       },
     ],
     [isDark]
@@ -108,7 +108,7 @@ export default function SavingsScreen() {
       {
         id: 'tx-1',
         type: 'contribution',
-        description: "Added to Ada's Education Fund",
+        description: 'Added to Hospital Bills Fund',
         amount: 50000,
         date: '2 hours ago',
         icon: 'arrow-down-circle',
@@ -117,8 +117,8 @@ export default function SavingsScreen() {
       {
         id: 'tx-2',
         type: 'withdrawal',
-        description: 'Withdrew from Emergency Fund',
-        amount: -25000,
+        description: 'Bought baby essentials',
+        amount: -15000,
         date: 'Yesterday',
         icon: 'arrow-up-circle',
         accent: isDark ? '#FCA5A5' : '#DC2626',
@@ -126,8 +126,8 @@ export default function SavingsScreen() {
       {
         id: 'tx-3',
         type: 'contribution',
-        description: 'Auto-save to New Home',
-        amount: 30000,
+        description: 'Auto-save to Postpartum Fund',
+        amount: 25000,
         date: '3 days ago',
         icon: 'clock-check',
         accent: isDark ? '#93C5FD' : '#2563EB',
@@ -139,36 +139,36 @@ export default function SavingsScreen() {
   const quickActions = useMemo(
     () => [
       {
-        key: 'add',
-        icon: 'plus-circle',
-        label: 'Add savings',
-        subtitle: 'Top up instantly',
-        accent: isDark ? '#93C5FD' : '#2563EB',
-        background: isDark ? 'rgba(59,130,246,0.16)' : 'rgba(37,99,235,0.08)',
-      },
-      {
-        key: 'withdraw',
-        icon: 'bank-transfer-out',
-        label: 'Withdraw',
-        subtitle: 'Move to wallet',
+        key: 'hospital',
+        icon: 'hospital-building',
+        label: 'Hospital bills',
+        subtitle: 'Save for delivery',
         accent: isDark ? '#FCA5A5' : '#DC2626',
-        background: isDark ? 'rgba(252,165,165,0.16)' : 'rgba(220,38,38,0.08)',
+        background: isDark ? 'rgba(248,113,113,0.16)' : 'rgba(220,38,38,0.08)',
       },
       {
-        key: 'goal',
-        icon: 'target-variant',
-        label: 'Create goal',
-        subtitle: 'Plan milestones',
+        key: 'baby-supplies',
+        icon: 'baby-carriage',
+        label: 'Baby supplies',
+        subtitle: 'Clothes & items',
+        accent: isDark ? '#FDE68A' : '#D97706',
+        background: isDark ? 'rgba(251,191,36,0.16)' : 'rgba(217,119,6,0.08)',
+      },
+      {
+        key: 'emergency',
+        icon: 'shield-heart',
+        label: 'Emergency fund',
+        subtitle: 'Medical safety',
+        accent: isDark ? '#6EE7B7' : '#059669',
+        background: isDark ? 'rgba(16,185,129,0.16)' : 'rgba(5,150,105,0.08)',
+      },
+      {
+        key: 'postpartum',
+        icon: 'heart-pulse',
+        label: 'Postpartum care',
+        subtitle: 'Recovery needs',
         accent: isDark ? '#C4B5FD' : '#7C3AED',
         background: isDark ? 'rgba(196,181,253,0.16)' : 'rgba(124,58,237,0.1)',
-      },
-      {
-        key: 'schedule',
-        icon: 'clock-check-outline',
-        label: 'Auto-save plan',
-        subtitle: 'Adjust cadence',
-        accent: isDark ? '#A5B4FC' : '#6366F1',
-        background: isDark ? 'rgba(165,180,252,0.16)' : 'rgba(99,102,241,0.1)',
       },
     ],
     [isDark]
@@ -186,10 +186,10 @@ export default function SavingsScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeading}>
             <RNText style={[styles.headerGreeting, { color: palette.textSecondary }]}>
-              Your Savings
+              Baby Savings
             </RNText>
             <RNText style={[styles.headerTitle, { color: palette.text }]}>
-              Building Your Future
+              Preparing for Baby
             </RNText>
             <View style={[styles.headerAccent, { backgroundColor: palette.primary }]} />
           </View>
@@ -438,10 +438,10 @@ export default function SavingsScreen() {
             </View>
             <View style={styles.insightsContent}>
               <RNText style={[styles.insightsTitle, { color: palette.text }]}>
-                You're doing great!
+                Great progress!
               </RNText>
               <RNText style={[styles.insightsText, { color: palette.textSecondary }]}>
-                You've saved 18% more this month. Keep building your future! 🌟
+                You're 18% ahead this month. Your baby's arrival will be stress-free! 👶
               </RNText>
             </View>
           </View>

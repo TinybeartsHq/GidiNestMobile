@@ -89,36 +89,36 @@ export default function DashboardScreen() {
 
   const quickActions = useMemo(() => [
     {
-      key: 'save',
-      icon: 'plus-circle',
-      label: 'Add savings',
-      subtitle: 'Top up now',
-      color: isDark ? '#93C5FD' : '#2563EB',
-      bgColor: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(37, 99, 235, 0.08)',
+      key: 'hospital',
+      icon: 'hospital-building',
+      label: 'Hospital bills',
+      subtitle: 'Delivery costs',
+      color: isDark ? '#FCA5A5' : '#DC2626',
+      bgColor: isDark ? 'rgba(248,113,113,0.12)' : 'rgba(220, 38, 38, 0.08)',
     },
     {
-      key: 'goal',
-      icon: 'target-variant',
-      label: 'Create goal',
-      subtitle: 'Plan ahead',
-      color: isDark ? '#C4B5FD' : '#7C3AED',
-      bgColor: isDark ? 'rgba(147,51,234,0.12)' : 'rgba(124, 58, 237, 0.08)',
+      key: 'baby-items',
+      icon: 'baby-carriage',
+      label: 'Baby supplies',
+      subtitle: 'Clothes & items',
+      color: isDark ? '#FDE68A' : '#D97706',
+      bgColor: isDark ? 'rgba(251,191,36,0.12)' : 'rgba(217, 119, 6, 0.08)',
     },
     {
-      key: 'automate',
-      icon: 'refresh-circle',
-      label: 'Automate',
-      subtitle: 'Set & forget',
+      key: 'emergency',
+      icon: 'shield-heart',
+      label: 'Emergency fund',
+      subtitle: 'Safety net',
       color: isDark ? '#6EE7B7' : '#059669',
       bgColor: isDark ? 'rgba(16,185,129,0.12)' : 'rgba(5, 150, 105, 0.08)',
     },
     {
-      key: 'withdraw',
-      icon: 'bank-transfer-out',
-      label: 'Withdraw',
-      subtitle: 'To your bank',
-      color: isDark ? '#FDE68A' : '#D97706',
-      bgColor: isDark ? 'rgba(251,191,36,0.12)' : 'rgba(217, 119, 6, 0.08)',
+      key: 'postpartum',
+      icon: 'heart-pulse',
+      label: 'Postpartum care',
+      subtitle: 'Recovery support',
+      color: isDark ? '#C4B5FD' : '#7C3AED',
+      bgColor: isDark ? 'rgba(147,51,234,0.12)' : 'rgba(124, 58, 237, 0.08)',
     },
   ], [isDark]);
 
@@ -126,17 +126,24 @@ export default function DashboardScreen() {
     () => [
       {
         id: 'goal-1',
-        name: 'Baby essentials',
-        icon: 'baby-face-outline',
+        name: 'Hospital delivery bills',
+        icon: 'hospital-building',
+        target: 500000,
+        saved: 250000,
+      },
+      {
+        id: 'goal-2',
+        name: 'Baby clothes & supplies',
+        icon: 'baby-carriage',
         target: 300000,
         saved: 180000,
       },
       {
-        id: 'goal-2',
-        name: 'Hospital stay',
-        icon: 'hospital-building',
-        target: 250000,
-        saved: 125000,
+        id: 'goal-3',
+        name: 'Postpartum recovery',
+        icon: 'heart-pulse',
+        target: 200000,
+        saved: 85000,
       },
     ],
     []
@@ -146,30 +153,30 @@ export default function DashboardScreen() {
     () => [
       {
         id: 'tx-1',
-        title: 'Savings top-up',
-        description: 'Bank transfer • GTB',
+        title: 'Hospital bills fund',
+        description: 'Saved for delivery',
         timestamp: '2 hours ago',
-        amount: 20000,
+        amount: 50000,
         positive: true,
-        icon: 'plus-circle',
+        icon: 'hospital-building',
       },
       {
         id: 'tx-2',
-        title: 'Goal contribution',
-        description: "Ada's future fund",
+        title: 'Baby supplies',
+        description: 'Added to baby fund',
         timestamp: 'Yesterday',
-        amount: 10000,
+        amount: 25000,
         positive: true,
-        icon: 'target',
+        icon: 'baby-carriage',
       },
       {
         id: 'tx-3',
-        title: 'Withdrawal',
-        description: 'UBA ••••8190',
+        title: 'Emergency fund',
+        description: 'Safety net contribution',
         timestamp: '3 days ago',
-        amount: -5000,
-        positive: false,
-        icon: 'bank-transfer-out',
+        amount: 15000,
+        positive: true,
+        icon: 'shield-heart',
       },
     ],
     []
@@ -477,7 +484,7 @@ export default function DashboardScreen() {
           >
             <MaterialCommunityIcons name="hand-heart" size={18} color={palette.primary} />
             <RNText style={[styles.encouragementText, { color: palette.textSecondary }]}>
-              You're building something beautiful, one step at a time.
+              Every little bit saved brings you closer to welcoming your bundle of joy.
             </RNText>
           </Animated.View>
         </ScrollView>

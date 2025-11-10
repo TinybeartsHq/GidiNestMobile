@@ -39,15 +39,15 @@ const TAB_CONFIG: Record<
     activeIcon: 'wallet',
     inactiveIcon: 'wallet-outline',
   },
-  Community: {
-    label: 'Community',
-    activeIcon: 'account-group',
-    inactiveIcon: 'account-group-outline',
-  },
   Transactions: {
     label: 'Activity',
     activeIcon: 'chart-line',
     inactiveIcon: 'chart-line-variant',
+  },
+  Community: {
+    label: 'Community',
+    activeIcon: 'account-group',
+    inactiveIcon: 'account-group-outline',
   },
   Profile: {
     label: 'Profile',
@@ -373,8 +373,8 @@ export default function BottomTabNavigator() {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Savings" component={SavingsScreen} />
-      <Tab.Screen name="Community" component={CommunityScreen} />
       <Tab.Screen name="Transactions" component={TransactionsScreen} />
+      <Tab.Screen name="Community" component={CommunityScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
