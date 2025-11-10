@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, Pressable, Text as RNText, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ export default function DashboardScreen() {
   const user = useSelector((state: RootState) => state.auth.user);
   const { palette, mode } = useThemeMode();
   const isDark = mode === 'dark';
+  const insets = useSafeAreaInsets();
 
   const analytics = useMemo(() => {
     if (!user || !('dashboardAnalytics' in user)) {
@@ -131,6 +132,11 @@ export default function DashboardScreen() {
     []
   );
 
+  const bottomContentPadding = useMemo(
+    () => insets.bottom + (Platform.OS === 'ios' ? 120 : 108),
+    [insets.bottom]
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -151,7 +157,10 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: bottomContentPadding }]}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Balance Hero Card */}
           <View
             style={[
@@ -462,7 +471,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingTop: theme.spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? 90 : 80,
     gap: theme.spacing.lg,
   },
   heroCard: {

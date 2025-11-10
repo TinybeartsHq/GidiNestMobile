@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, Switch, Divider, Button, useTheme } from 'react-native-paper';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { spacing, borderRadius } from '../../theme/theme';
@@ -9,6 +9,11 @@ export default function ProfileScreen() {
   const { mode, toggleTheme } = useThemeMode();
   const paperTheme = useTheme();
   const isDark = mode === 'dark';
+  const insets = useSafeAreaInsets();
+  const bottomPadding = useMemo(
+    () => insets.bottom + (Platform.OS === 'ios' ? spacing.xl * 2.8 : spacing.xl * 2.4),
+    [insets.bottom]
+  );
 
   const styles = useMemo(
     () =>
@@ -20,7 +25,6 @@ export default function ProfileScreen() {
         scrollContent: {
           paddingHorizontal: spacing.lg,
           paddingTop: spacing.xl,
-          paddingBottom: Platform.OS === 'ios' ? 90 : 80,
           gap: spacing.lg,
         },
         heading: {
@@ -73,7 +77,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}
       >
         <View>
