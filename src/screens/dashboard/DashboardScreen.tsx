@@ -1,5 +1,14 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, Text as RNText, Platform } from 'react-native';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Text as RNText,
+  Platform,
+  Animated,
+  Easing,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { Button } from 'react-native-paper';
@@ -22,6 +31,10 @@ export default function DashboardScreen() {
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
 
+  const sectionAnimations = useRef(
+    Array.from({ length: 6 }, () => new Animated.Value(0))
+  ).current;
+
   const analytics = useMemo(() => {
     if (!user || !('dashboardAnalytics' in user)) {
       return {
@@ -35,6 +48,36 @@ export default function DashboardScreen() {
   }, [user]);
 
   const [showBalance, setShowBalance] = useState(true);
+
+  useEffect(() => {
+    sectionAnimations.forEach((anim) => anim.setValue(0));
+    const animations = sectionAnimations.map((anim) =>
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 520,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      })
+    );
+    Animated.stagger(110, animations).start();
+  }, [sectionAnimations]);
+
+  const getAnimatedStyle = useCallback(
+    (anim: Animated.Value, translateY: number = 28) => ({
+      opacity: anim,
+      transform: [
+        {
+          translateY: anim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [translateY, 0],
+          }),
+        },
+      ],
+    }),
+    []
+  );
+
+  const [heroAnim, kycAnim, quickAnim, goalsAnim, transactionAnim, footerAnim] = sectionAnimations;
 
   // Subtle, balanced colors for light and dark mode
   const cardBackground = isDark ? 'rgba(15, 23, 42, 0.6)' : '#FFFFFF';
@@ -162,7 +205,7 @@ export default function DashboardScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Balance Hero Card */}
-          <View
+          <Animated.View
             style={[
               styles.heroCard,
               {
@@ -170,6 +213,7 @@ export default function DashboardScreen() {
                 backgroundColor: cardBackground,
                 shadowColor: isDark ? '#000000' : 'rgba(100, 116, 139, 0.15)',
               },
+              getAnimatedStyle(heroAnim, 24),
             ]}
           >
             <View style={[styles.heroBadge, { backgroundColor: featureTint }]}>
@@ -227,38 +271,45 @@ export default function DashboardScreen() {
             >
               Build your nest
             </Button>
-          </View>
+          </Animated.View>
 
           {/* KYC Verification Banner */}
-          <Pressable
-            style={[
-              styles.kycBanner,
-              {
-                backgroundColor: isDark ? 'rgba(124, 58, 237, 0.1)' : 'rgba(139, 92, 246, 0.06)',
-                borderColor: isDark ? 'rgba(167, 139, 250, 0.25)' : 'rgba(139, 92, 246, 0.2)',
-              },
-            ]}
-            onPress={() => {}}
-          >
-            <View style={[styles.kycIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.18)' : 'rgba(139, 92, 246, 0.12)' }]}>
-              <MaterialCommunityIcons name="shield-check-outline" size={18} color={palette.primary} />
-            </View>
-            <View style={styles.kycContent}>
-              <RNText style={[styles.kycTitle, { color: palette.text }]}>
-                Verify your account
-              </RNText>
-              <RNText style={[styles.kycSubtitle, { color: palette.textSecondary }]}>
-                Complete KYC for higher limits
-              </RNText>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
-          </Pressable>
+          <Animated.View style={getAnimatedStyle(kycAnim, 26)}>
+            <Pressable
+              style={[
+                styles.kycBanner,
+                {
+                  backgroundColor: isDark ? 'rgba(124, 58, 237, 0.1)' : 'rgba(139, 92, 246, 0.06)',
+                  borderColor: isDark ? 'rgba(167, 139, 250, 0.25)' : 'rgba(139, 92, 246, 0.2)',
+                },
+              ]}
+              onPress={() => {}}
+            >
+              <View
+                style={[
+                  styles.kycIcon,
+                  { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.18)' : 'rgba(139, 92, 246, 0.12)' },
+                ]}
+              >
+                <MaterialCommunityIcons name="shield-check-outline" size={18} color={palette.primary} />
+              </View>
+              <View style={styles.kycContent}>
+                <RNText style={[styles.kycTitle, { color: palette.text }]}>
+                  Verify your account
+                </RNText>
+                <RNText style={[styles.kycSubtitle, { color: palette.textSecondary }]}>
+                  Complete KYC for higher limits
+                </RNText>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
+            </Pressable>
+          </Animated.View>
 
           {/* Separator */}
           <View style={[styles.sectionSeparator, { backgroundColor: separatorColor }]} />
 
           {/* Quick Actions */}
-          <View style={styles.section}>
+          <Animated.View style={[styles.section, getAnimatedStyle(quickAnim, 30)]}>
             <RNText style={[styles.sectionTitle, { color: palette.text }]}>
               Quick actions
             </RNText>
@@ -287,14 +338,14 @@ export default function DashboardScreen() {
                 </Pressable>
               ))}
             </View>
-          </View>
+          </Animated.View>
 
           {/* Separator */}
           <View style={[styles.sectionSeparator, { backgroundColor: separatorColor }]} />
 
           {/* Saving Goals Section */}
           {savingGoals.length > 0 && (
-            <View style={styles.section}>
+            <Animated.View style={[styles.section, getAnimatedStyle(goalsAnim, 26)]}>
               <View style={styles.sectionHeader}>
                 <RNText style={[styles.sectionTitle, { color: palette.text }]}>
                   Your milestones
@@ -353,14 +404,14 @@ export default function DashboardScreen() {
                   );
                 })}
               </View>
-            </View>
+            </Animated.View>
           )}
 
           {/* Separator */}
           <View style={[styles.sectionSeparator, { backgroundColor: separatorColor }]} />
 
           {/* Transaction History */}
-          <View style={styles.section}>
+          <Animated.View style={[styles.section, getAnimatedStyle(transactionAnim, 20)]}>
             <View style={styles.sectionHeader}>
               <RNText style={[styles.sectionTitle, { color: palette.text }]}>
                 Recent activity
@@ -414,15 +465,21 @@ export default function DashboardScreen() {
                 </Pressable>
               ))}
             </View>
-          </View>
+          </Animated.View>
 
           {/* Encouraging Footer */}
-          <View style={[styles.encouragementCard, { backgroundColor: featureTint }]}>
+          <Animated.View
+            style={[
+              styles.encouragementCard,
+              { backgroundColor: featureTint },
+              getAnimatedStyle(footerAnim, 16),
+            ]}
+          >
             <MaterialCommunityIcons name="hand-heart" size={18} color={palette.primary} />
             <RNText style={[styles.encouragementText, { color: palette.textSecondary }]}>
               You're building something beautiful, one step at a time.
             </RNText>
-          </View>
+          </Animated.View>
         </ScrollView>
       </SafeAreaView>
     </View>
