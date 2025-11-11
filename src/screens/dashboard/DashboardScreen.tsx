@@ -340,7 +340,12 @@ export default function DashboardScreen() {
                   borderColor: isDark ? 'rgba(167, 139, 250, 0.25)' : 'rgba(139, 92, 246, 0.2)',
                 },
               ]}
-              onPress={() => {}}
+              onPress={() => {
+                // @ts-ignore
+                navigation.navigate('Profile', {
+                  screen: 'SelectVerificationMethod',
+                });
+              }}
             >
               <View
                 style={[
