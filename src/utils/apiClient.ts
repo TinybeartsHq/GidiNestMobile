@@ -75,7 +75,16 @@ apiClient.interceptors.response.use(
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
 
         if (!refreshToken) {
-          throw new Error('No refresh token available');
+          // Silently fail - user needs to log in again
+          // Clear tokens and return original error
+          processQueue(null, null);
+          await SecureStore.deleteItemAsync('accessToken');
+          await SecureStore.deleteItemAsync('refreshToken');
+          await SecureStore.deleteItemAsync('user_email');
+          await SecureStore.deleteItemAsync('has_passcode_setup');
+          await AsyncStorage.removeItem('user');
+          isRefreshing = false;
+          return Promise.reject(error);
         }
 
         // Call refresh endpoint

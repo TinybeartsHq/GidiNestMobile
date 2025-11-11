@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.gidinest.app"
+      "bundleIdentifier": "com.gidinest.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "GidiNest uses Face ID to provide secure and convenient authentication for your account."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -29,7 +32,14 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "GidiNest uses Face ID to provide secure and convenient authentication for your account.",
+          "NSFaceIDUsageDescription": "GidiNest uses Face ID to provide secure and convenient authentication for your account."
+        }
+      ]
     ],
     "extra": {
       "apiBaseUrl": "https://your-api-url.com/api/v1/"

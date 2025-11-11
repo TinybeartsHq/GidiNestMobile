@@ -234,16 +234,25 @@ export const getUserLocation = async (): Promise<string | undefined> => {
  * POST /api/v2/auth/signup
  */
 export const signUp = async (data: SignUpRequest): Promise<AuthResponse> => {
-  const deviceInfo = await getDeviceInfo();
-  const location = await getUserLocation();
+  try {
+    const deviceInfo = await getDeviceInfo();
+    const location = await getUserLocation();
 
-  const response = await apiClient.post(`${V2_AUTH_BASE}/signup`, {
-    ...data,
-    ...deviceInfo,
-    location,
-  });
+    const response = await apiClient.post(`${V2_AUTH_BASE}/signup`, {
+      ...data,
+      ...deviceInfo,
+      location,
+    });
 
-  return response.data;
+    return response.data;
+  } catch (error: any) {
+    // Only log errors that are not auth-related (401, 403)
+    const status = error?.response?.status;
+    if (status && status !== 401 && status !== 403) {
+      console.error('Sign up error:', error);
+    }
+    throw error;
+  }
 };
 
 /**
@@ -263,7 +272,12 @@ export const signIn = async (data: SignInRequest): Promise<AuthResponse> => {
 
     return response.data;
   } catch (error: any) {
-    console.error('Sign in error:', error);
+    // Only log errors that are not auth-related (401, 403) to avoid showing
+    // "No refresh token" errors to users
+    const status = error?.response?.status;
+    if (status && status !== 401 && status !== 403) {
+      console.error('Sign in error:', error);
+    }
     throw error;
   }
 };
@@ -282,14 +296,24 @@ export const refreshToken = async (data: RefreshTokenRequest) => {
  * POST /api/v2/auth/logout
  */
 export const logout = async (data?: LogoutRequest): Promise<LogoutResponse> => {
-  const deviceInfo = await getDeviceInfo();
+  try {
+    const deviceInfo = await getDeviceInfo();
 
-  const response = await apiClient.post(`${V2_AUTH_BASE}/logout`, {
-    ...data,
-    device_id: data?.device_id || deviceInfo.device_id,
-  });
+    const response = await apiClient.post(`${V2_AUTH_BASE}/logout`, {
+      ...data,
+      device_id: data?.device_id || deviceInfo.device_id,
+    });
 
-  return response.data;
+    return response.data;
+  } catch (error: any) {
+    // Silently handle logout errors - user is logging out anyway
+    // Just clear local data in the calling code
+    const status = error?.response?.status;
+    if (status && status !== 401 && status !== 403) {
+      console.error('Logout error:', error);
+    }
+    throw error;
+  }
 };
 
 // ============================================
@@ -301,8 +325,16 @@ export const logout = async (data?: LogoutRequest): Promise<LogoutResponse> => {
  * POST /api/v2/auth/passcode/setup
  */
 export const setupPasscode = async (data: PasscodeSetupRequest): Promise<PasscodeResponse> => {
-  const response = await apiClient.post(`${V2_AUTH_BASE}/passcode/setup`, data);
-  return response.data;
+  try {
+    const response = await apiClient.post(`${V2_AUTH_BASE}/passcode/setup`, data);
+    return response.data;
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status && status !== 401 && status !== 403) {
+      console.error('Passcode setup error:', error);
+    }
+    throw error;
+  }
 };
 
 /**
@@ -310,8 +342,16 @@ export const setupPasscode = async (data: PasscodeSetupRequest): Promise<Passcod
  * POST /api/v2/auth/passcode/verify
  */
 export const verifyPasscode = async (data: PasscodeVerifyRequest): Promise<VerifyResponse> => {
-  const response = await apiClient.post(`${V2_AUTH_BASE}/passcode/verify`, data);
-  return response.data;
+  try {
+    const response = await apiClient.post(`${V2_AUTH_BASE}/passcode/verify`, data);
+    return response.data;
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status && status !== 401 && status !== 403) {
+      console.error('Passcode verify error:', error);
+    }
+    throw error;
+  }
 };
 
 /**
@@ -319,8 +359,16 @@ export const verifyPasscode = async (data: PasscodeVerifyRequest): Promise<Verif
  * PUT /api/v2/auth/passcode/change
  */
 export const changePasscode = async (data: PasscodeChangeRequest): Promise<PasscodeChangeResponse> => {
-  const response = await apiClient.put(`${V2_AUTH_BASE}/passcode/change`, data);
-  return response.data;
+  try {
+    const response = await apiClient.put(`${V2_AUTH_BASE}/passcode/change`, data);
+    return response.data;
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status && status !== 401 && status !== 403) {
+      console.error('Passcode change error:', error);
+    }
+    throw error;
+  }
 };
 
 // ============================================
@@ -332,8 +380,16 @@ export const changePasscode = async (data: PasscodeChangeRequest): Promise<Passc
  * POST /api/v2/auth/pin/setup
  */
 export const setupPin = async (data: PinSetupRequest): Promise<PinResponse> => {
-  const response = await apiClient.post(`${V2_AUTH_BASE}/pin/setup`, data);
-  return response.data;
+  try {
+    const response = await apiClient.post(`${V2_AUTH_BASE}/pin/setup`, data);
+    return response.data;
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status && status !== 401 && status !== 403) {
+      console.error('PIN setup error:', error);
+    }
+    throw error;
+  }
 };
 
 /**
@@ -341,8 +397,16 @@ export const setupPin = async (data: PinSetupRequest): Promise<PinResponse> => {
  * POST /api/v2/auth/pin/verify
  */
 export const verifyPin = async (data: PinVerifyRequest): Promise<VerifyResponse> => {
-  const response = await apiClient.post(`${V2_AUTH_BASE}/pin/verify`, data);
-  return response.data;
+  try {
+    const response = await apiClient.post(`${V2_AUTH_BASE}/pin/verify`, data);
+    return response.data;
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status && status !== 401 && status !== 403) {
+      console.error('PIN verify error:', error);
+    }
+    throw error;
+  }
 };
 
 /**
@@ -350,8 +414,16 @@ export const verifyPin = async (data: PinVerifyRequest): Promise<VerifyResponse>
  * PUT /api/v2/auth/pin/change
  */
 export const changePin = async (data: PinChangeRequest): Promise<PinChangeResponse> => {
-  const response = await apiClient.put(`${V2_AUTH_BASE}/pin/change`, data);
-  return response.data;
+  try {
+    const response = await apiClient.put(`${V2_AUTH_BASE}/pin/change`, data);
+    return response.data;
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status && status !== 401 && status !== 403) {
+      console.error('PIN change error:', error);
+    }
+    throw error;
+  }
 };
 
 /**
@@ -359,8 +431,16 @@ export const changePin = async (data: PinChangeRequest): Promise<PinChangeRespon
  * GET /api/v2/auth/pin/status
  */
 export const getPinStatus = async (): Promise<PinStatusResponse> => {
-  const response = await apiClient.get(`${V2_AUTH_BASE}/pin/status`);
-  return response.data;
+  try {
+    const response = await apiClient.get(`${V2_AUTH_BASE}/pin/status`);
+    return response.data;
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status && status !== 401 && status !== 403) {
+      console.error('PIN status error:', error);
+    }
+    throw error;
+  }
 };
 
 // Export all as default object for convenience

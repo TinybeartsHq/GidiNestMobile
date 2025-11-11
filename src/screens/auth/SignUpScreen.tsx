@@ -20,6 +20,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
+import { useAuthV2 } from '../../hooks/useAuthV2';
+import * as SecureStore from 'expo-secure-store';
 
 const { height } = Dimensions.get('window');
 
@@ -47,6 +49,7 @@ export default function SignUpScreen() {
   const navigation = useNavigation();
   const { palette, mode } = useThemeMode();
   const isDark = mode === 'dark';
+  const { signUp, loading, error, clearAuthError } = useAuthV2();
 
   const [step, setStep] = useState<Step>('phone');
   const [countryCode, setCountryCode] = useState('+234');
@@ -123,16 +126,19 @@ export default function SignUpScreen() {
     };
   }, [firstName, lastName, email, dob, stateRegion, address, submitted, step]);
 
-  const handleSendCode = () => {
+  const handleSendCode = async () => {
     if (isSendingCode) return;
     Keyboard.dismiss();
     setSubmitted(true);
     if (!isPhoneNumberValid) return;
     setIsSendingCode(true);
+    
+    // For now, skip OTP verification and go directly to profile step
+    // TODO: Implement actual OTP verification when backend is ready
     setTimeout(() => {
       setSubmitted(false);
       setIsSendingCode(false);
-      setStep('otp');
+      setStep('profile');
     }, 450);
   };
 
@@ -166,20 +172,85 @@ export default function SignUpScreen() {
     setStep('password');
   };
 
-  const handleCreatePassword = () => {
+  const handleCreatePassword = async () => {
     Keyboard.dismiss();
     setSubmitted(true);
-    if (password.trim().length < 6 || password !== confirmPassword) return;
-    Alert.alert(
-      'Account created',
-      'Your GidiNest account has been created. Sign in to continue.',
-      [
-        {
-          text: 'Sign in',
-          onPress: () => navigation.navigate('SignIn' as never),
-        },
-      ]
-    );
+    
+    if (password.trim().length < 6) {
+      Alert.alert('Invalid Password', 'Password must be at least 6 characters long.');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      Alert.alert('Password Mismatch', 'Passwords do not match. Please try again.');
+      return;
+    }
+
+    // Validate all required fields
+    if (
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !email.trim() ||
+      !EMAIL_REGEX.test(email.trim()) ||
+      !dob ||
+      !stateRegion ||
+      !address.trim() ||
+      !phoneNumber.trim()
+    ) {
+      Alert.alert('Missing Information', 'Please complete all required fields.');
+      return;
+    }
+
+    try {
+      clearAuthError();
+
+      // Prepare signup data for V2 API
+      const fullPhoneNumber = `${countryCode}${phoneNumber.replace(/\D/g, '')}`;
+      
+      const signUpData = {
+        email: email.trim(),
+        password: password.trim(),
+        password_confirmation: confirmPassword.trim(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        phone: fullPhoneNumber,
+        // Optional fields can be added here if needed
+        // referral_code: '', // Add referral code input if needed
+      };
+
+      // Call V2 signup API
+      const result = await signUp(signUpData).unwrap();
+
+      // Store user email for passcode authentication
+      await SecureStore.setItemAsync('user_email', email.trim());
+
+      // Don't set has_passcode_setup here - it will be set after PasscodeSetup completes
+      // The user hasn't set up their passcode yet at this point
+      await SecureStore.deleteItemAsync('has_passcode_setup');
+
+      // Success - navigate to PasscodeSetup to complete onboarding
+      Alert.alert(
+        'Account Created! 🎉',
+        'Your GidiNest account has been created successfully. Let\'s secure your account with a passcode.',
+        [
+          {
+            text: 'Continue',
+            onPress: () => {
+              // @ts-ignore - Navigate to PasscodeSetup which will chain to PINSetup and then MainApp
+              navigation.replace('PasscodeSetup', {
+                onSuccess: () => {
+                  // PasscodeSetup will automatically navigate to PINSetup
+                  // PINSetup will then navigate to MainApp
+                },
+              });
+            },
+          },
+        ]
+      );
+    } catch (err: any) {
+      const errorMessage = err || 'Sign up failed. Please try again.';
+      Alert.alert('Sign Up Failed', errorMessage);
+    }
   };
 
   const handleOtpChange = (value: string, index: number) => {
@@ -640,6 +711,11 @@ export default function SignUpScreen() {
             <View
               style={[styles.bottomCTA, { borderTopColor: borderNeutral, backgroundColor: palette.background }]}
             >
+              {error && (
+                <Text style={[styles.errorText, { color: palette.error }]}>
+                  {error}
+                </Text>
+              )}
               <Button
                 mode="contained"
                 onPress={handleCreatePassword}
@@ -648,7 +724,8 @@ export default function SignUpScreen() {
                 style={styles.button}
                 contentStyle={styles.buttonContent}
                 labelStyle={styles.buttonLabel}
-                disabled={passwordInvalid || confirmInvalid}
+                loading={loading}
+                disabled={passwordInvalid || confirmInvalid || loading}
               >
                 Create account
               </Button>
@@ -1043,5 +1120,12 @@ const styles = StyleSheet.create({
   },
   footerTerms: {
     marginTop: theme.spacing.xs,
+  },
+  errorText: {
+    fontFamily: 'NeuzeitGro-Medium',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
   },
 });

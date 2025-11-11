@@ -80,17 +80,38 @@ export const authenticateWithBiometric = async (
         biometricType,
       };
     } else {
+      // Handle specific error cases
+      let errorMessage = result.error || 'Authentication failed';
+      
+      // iOS specific: missing_usage_description error
+      if (result.error === 'missing_usage_description' || 
+          (typeof result.error === 'string' && result.error.includes('usage_description'))) {
+        errorMessage = 'Face ID permission not configured. Please rebuild the app after enabling Face ID in app.json.';
+      }
+      
       return {
         success: false,
-        error: result.error || 'Authentication failed',
+        error: errorMessage,
         biometricType,
       };
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Biometric authentication error:', error);
+    
+    // Check for missing_usage_description in catch block too
+    const errorMessage = error?.message || error?.toString() || 'An error occurred during authentication';
+    
+    if (errorMessage.includes('usage_description') || errorMessage.includes('missing_usage_description')) {
+      return {
+        success: false,
+        error: 'Face ID permission not configured. Please rebuild the app after enabling Face ID in app.json.',
+        biometricType: 'None',
+      };
+    }
+    
     return {
       success: false,
-      error: 'An error occurred during authentication',
+      error: errorMessage,
       biometricType: 'None',
     };
   }

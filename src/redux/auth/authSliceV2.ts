@@ -113,6 +113,13 @@ export const signInUser = createAsyncThunk(
 
       return { user, tokens };
     } catch (error: any) {
+      // Don't show refresh token errors to users
+      const errorMsg = error.message || '';
+      if (errorMsg.includes('No refresh token') || errorMsg.includes('refresh token')) {
+        // Silently handle - user will be redirected to login
+        return rejectWithValue('Session expired. Please sign in again.');
+      }
+
       const errorMessage =
         error.response?.data?.detail ||
         error.response?.data?.message ||

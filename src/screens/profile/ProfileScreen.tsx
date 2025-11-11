@@ -135,11 +135,11 @@ export default function ProfileScreen() {
               await logout().unwrap();
 
               // Clear stored credentials for passcode auth
-              // Note: We keep user_email and has_passcode_setup flag so the app can detect if user has passcode set up
-              // These will be overwritten when a different user logs in
               await SecureStore.deleteItemAsync('user_passcode');
-              await SecureStore.deleteItemAsync('biometric_enabled');
-              // Note: We don't clear user_email or has_passcode_setup here - they're needed for next login
+              await SecureStore.deleteItemAsync('user_email');
+              await SecureStore.deleteItemAsync('has_passcode_setup');
+              // Note: We keep biometric_enabled - it's a user preference that should persist across sessions
+              // Only clear it if user explicitly disables it in Security Settings
 
               // Navigate to root navigator and reset to AuthLanding
               const rootNavigation = navigation.getParent()?.getParent();

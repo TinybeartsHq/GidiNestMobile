@@ -54,16 +54,23 @@ export default function PasscodeAuthScreen(props?: PasscodeAuthScreenProps) {
   const [attempts, setAttempts] = useState(0);
   const [shakeAnimation] = useState(new Animated.Value(0));
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricIcon, setBiometricIcon] = useState<'face-recognition' | 'fingerprint'>('fingerprint');
   const [biometricLabel, setBiometricLabel] = useState('Biometric');
 
   useEffect(() => {
     checkBiometric();
-    // Auto-trigger biometric on mount
-    setTimeout(() => {
-      handleBiometric();
-    }, 500);
   }, []);
+
+  // Auto-trigger biometric when both are available and enabled
+  useEffect(() => {
+    if (biometricAvailable && biometricEnabled && mode === 'login') {
+      const timer = setTimeout(() => {
+        handleBiometric();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [biometricAvailable, biometricEnabled]);
 
   useEffect(() => {
     if (passcode.length === PASSCODE_LENGTH) {
@@ -72,16 +79,31 @@ export default function PasscodeAuthScreen(props?: PasscodeAuthScreenProps) {
   }, [passcode]);
 
   const checkBiometric = async () => {
-    const available = await isBiometricAvailable();
-    setBiometricAvailable(available);
+    try {
+      const available = await isBiometricAvailable();
+      console.log('Biometric hardware available:', available);
+      
+      // Check if biometric is enabled in app settings
+      const enabled = await SecureStore.getItemAsync('biometric_enabled');
+      const isEnabled = enabled === 'true';
+      console.log('Biometric enabled in settings:', isEnabled);
+      
+      setBiometricAvailable(available && isEnabled);
+      setBiometricEnabled(isEnabled);
 
-    if (available) {
-      const type = await getBiometricType();
-      const label = await getBiometricLabel();
-      setBiometricLabel(label);
-      setBiometricIcon(
-        type === 'FaceID' ? 'face-recognition' : 'fingerprint'
-      );
+      if (available && isEnabled) {
+        const type = await getBiometricType();
+        const label = await getBiometricLabel();
+        setBiometricLabel(label);
+        setBiometricIcon(
+          type === 'FaceID' ? 'face-recognition' : 'fingerprint'
+        );
+        console.log('Biometric type:', type, 'Label:', label);
+      }
+    } catch (error) {
+      console.error('Error checking biometric:', error);
+      setBiometricAvailable(false);
+      setBiometricEnabled(false);
     }
   };
 
@@ -104,6 +126,11 @@ export default function PasscodeAuthScreen(props?: PasscodeAuthScreenProps) {
         email: userEmail,
         passcode: passcode,
       }).unwrap();
+
+      // Store passcode for future biometric authentication
+      // This ensures biometric will work on next login
+      await SecureStore.setItemAsync('user_passcode', passcode);
+      console.log('Passcode stored for biometric authentication');
 
       // Success!
       setTimeout(() => {
@@ -188,13 +215,24 @@ export default function PasscodeAuthScreen(props?: PasscodeAuthScreenProps) {
   };
 
   const handleBiometric = async () => {
-    if (!biometricAvailable) return;
+    console.log('FaceID button clicked', { biometricAvailable, biometricEnabled });
+    
+    if (!biometricAvailable || !biometricEnabled) {
+      console.log('Biometric not available or not enabled');
+      Alert.alert(
+        'Biometric Not Enabled',
+        'Please enable biometric authentication in Security Settings first.'
+      );
+      return;
+    }
 
     const message = mode === 'verify'
       ? 'Verify your identity to continue'
       : 'Authenticate to access GidiNest';
 
+    console.log('Starting biometric authentication...');
     const result = await authenticateWithBiometric(message);
+    console.log('Biometric authentication result:', result);
 
     if (result.success) {
       try {
@@ -202,10 +240,22 @@ export default function PasscodeAuthScreen(props?: PasscodeAuthScreenProps) {
         const userEmail = await SecureStore.getItemAsync('user_email');
         const storedPasscode = await SecureStore.getItemAsync('user_passcode');
 
-        if (!userEmail || !storedPasscode) {
-          Alert.alert('Error', 'Authentication data not found. Please sign in with email.');
+        if (!userEmail) {
+          Alert.alert('Error', 'User email not found. Please sign in with email.');
           // @ts-ignore
           navigation.replace('SignIn');
+          return;
+        }
+
+        // If passcode is not stored, user needs to enter it manually
+        // This happens after logout when user signs in with email/password again
+        // The passcode input is already visible, so user can enter it
+        // Once entered successfully, it will be stored for future biometric use
+        if (!storedPasscode) {
+          console.log('Passcode not stored - user needs to enter it manually');
+          // Show a brief message without blocking the UI
+          setError('Please enter your passcode to complete authentication');
+          setTimeout(() => setError(''), 3000);
           return;
         }
 

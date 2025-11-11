@@ -90,7 +90,18 @@ export default function SecuritySettingsScreen() {
           `${biometricLabel} authentication enabled successfully!`
         );
       } else {
-        Alert.alert('Authentication Failed', result.error || 'Please try again');
+        // Show more helpful error message
+        const errorMessage = result.error || 'Please try again';
+        let alertTitle = 'Authentication Failed';
+        let alertMessage = errorMessage;
+        
+        // iOS specific: missing_usage_description
+        if (errorMessage.includes('usage_description') || errorMessage.includes('missing_usage_description')) {
+          alertTitle = 'Face ID Setup Required';
+          alertMessage = 'Face ID permission is not configured in the app. Please rebuild the app:\n\n1. Run: npx expo run:ios\n2. Or create a new build with EAS\n\nThis is required after adding Face ID configuration to app.json.';
+        }
+        
+        Alert.alert(alertTitle, alertMessage);
       }
     } else {
       // Disabling biometric - show confirmation

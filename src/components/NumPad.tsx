@@ -47,7 +47,11 @@ export default function NumPad({
               opacity: pressed ? 0.8 : 1,
             },
           ]}
-          onPress={onBiometric}
+          onPress={() => {
+            if (onBiometric) {
+              onBiometric();
+            }
+          }}
         >
           <MaterialCommunityIcons
             name={biometricIcon as any}

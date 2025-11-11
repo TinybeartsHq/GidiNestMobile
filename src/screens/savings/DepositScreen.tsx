@@ -12,12 +12,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
+import { useAuthV2 } from '../../hooks/useAuthV2';
+import RestrictionBanner from '../../components/RestrictionBanner';
 
 export default function DepositScreen() {
   const { palette, mode } = useThemeMode();
   const isDark = mode === 'dark';
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { isRestricted } = useAuthV2();
 
   const cardBackground = isDark ? palette.card : '#FFFFFF';
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
@@ -89,6 +92,9 @@ export default function DepositScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Restriction Banner */}
+          {isRestricted && <RestrictionBanner style={{ marginBottom: theme.spacing.md }} />}
+
           {/* Info Card */}
           <View
             style={[

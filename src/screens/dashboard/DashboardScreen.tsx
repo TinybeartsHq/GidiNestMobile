@@ -18,6 +18,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import type { RootState } from '../../redux/types';
 import { theme } from '../../theme/theme';
+import { useAuthV2 } from '../../hooks/useAuthV2';
+import RestrictionBanner from '../../components/RestrictionBanner';
 
 const formatCurrency = (value: number, currency: string) => {
   const mappedCurrency = currency === 'NGN' ? '₦' : currency;
@@ -33,6 +35,7 @@ export default function DashboardScreen() {
   const navigation = useNavigation();
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
+  const { user: userV2, isRestricted } = useAuthV2();
 
   const sectionAnimations = useRef(
     Array.from({ length: 6 }, () => new Animated.Value(0))
@@ -87,7 +90,10 @@ export default function DashboardScreen() {
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
   const separatorColor = isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(148, 163, 184, 0.2)';
 
-  const welcomeName = (user as any)?.first_name ?? (user as any)?.name ?? null;
+  // Prefer V2 user data if available
+  const currentUser = userV2 || user;
+  const welcomeName = currentUser?.first_name ?? (currentUser as any)?.name ?? null;
+  const accountTier = userV2?.account_tier || 'Tier 1';
   const maskedBalance = '₦•••,•••';
 
   const quickActions = useMemo(() => [
@@ -235,9 +241,18 @@ export default function DashboardScreen() {
         {/* Top Bar */}
         <View style={[styles.topBar, { borderColor: separatorColor }]}>
           <View style={styles.topLeft}>
-            <RNText style={[styles.greeting, { color: palette.textSecondary }]}>
-              {welcomeName ? `Hey ${welcomeName} 👋` : 'Welcome back 👋'}
-            </RNText>
+            <View style={styles.greetingRow}>
+              <RNText style={[styles.greeting, { color: palette.textSecondary }]}>
+                {welcomeName ? `Hey ${welcomeName} 👋` : 'Welcome back 👋'}
+              </RNText>
+              {userV2 && (
+                <View style={[styles.tierBadge, { backgroundColor: palette.primary + '20' }]}>
+                  <RNText style={[styles.tierBadgeText, { color: palette.primary }]}>
+                    {accountTier}
+                  </RNText>
+                </View>
+              )}
+            </View>
             <RNText style={[styles.topBadge, { color: palette.text }]}>
               Your nest today
             </RNText>
@@ -261,6 +276,9 @@ export default function DashboardScreen() {
           contentContainerStyle={[styles.content, { paddingBottom: bottomContentPadding }]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Restriction Banner */}
+          {isRestricted && <RestrictionBanner style={{ marginBottom: theme.spacing.md }} />}
+
           {/* Balance Hero Card */}
           <Animated.View
             style={[
@@ -571,9 +589,25 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: theme.spacing.xs / 2,
   },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
   greeting: {
     fontFamily: 'NeuzeitGro-Regular',
     fontSize: 13,
+  },
+  tierBadge: {
+    paddingHorizontal: theme.spacing.xs + 2,
+    paddingVertical: theme.spacing.xs / 2,
+    borderRadius: theme.borderRadius.sm,
+  },
+  tierBadgeText: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   topBadge: {
     fontFamily: 'NeuzeitGro-SemiBold',
