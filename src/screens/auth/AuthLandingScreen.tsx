@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions, Pressable } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Text, Button, useTheme } from 'react-native-paper';
@@ -20,7 +20,7 @@ const featurePoints = [
 export default function AuthLandingScreen() {
   const navigation = useNavigation();
   const paperTheme = useTheme();
-  const { palette, mode, toggleTheme } = useThemeMode();
+  const { palette, mode } = useThemeMode();
   const isDark = mode === 'dark';
 
   const heroGradient = isDark
@@ -41,18 +41,6 @@ export default function AuthLandingScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={[styles.topBar, { borderColor: palette.border }]}>
           <Text style={[styles.topBadge, { color: palette.primary }]}>GidiNest</Text>
-          <Pressable
-            style={[styles.modeToggle, { borderColor: palette.border }]}
-            onPress={toggleTheme}
-            accessibilityRole="button"
-            accessibilityLabel="Toggle theme"
-          >
-            <MaterialCommunityIcons
-              name={isDark ? 'weather-sunny' : 'moon-waning-crescent'}
-              size={16}
-              color={palette.text}
-            />
-          </Pressable>
         </View>
 
         <View style={styles.content}>
@@ -144,14 +132,6 @@ const styles = StyleSheet.create({
     fontFamily: 'NeuzeitGro-Bold',
     fontSize: 16,
     letterSpacing: 0.6,
-  },
-  modeToggle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   content: {
     flex: 1,

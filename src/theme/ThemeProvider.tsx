@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import { useColorScheme } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import {
   AppColorPalette,
@@ -22,8 +21,7 @@ type ThemeProviderProps = {
 };
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const systemScheme = useColorScheme();
-  const [mode, setMode] = useState<ThemeMode>(systemScheme === 'dark' ? 'dark' : 'light');
+  const [mode, setMode] = useState<ThemeMode>('dark'); // Default to dark mode
 
   const palette = useMemo(() => getAppColors(mode), [mode]);
   const paperTheme = useMemo(() => createPaperTheme(mode), [mode]);

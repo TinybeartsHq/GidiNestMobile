@@ -276,6 +276,24 @@ export default function EditProfileScreen() {
               </Pressable>
             </View>
           </View>
+
+          {/* App Settings */}
+          <View style={styles.section}>
+            <RNText style={[styles.sectionTitle, { color: palette.text }]}>
+              App Settings
+            </RNText>
+            <View
+              style={[
+                styles.actionsCard,
+                {
+                  backgroundColor: cardBackground,
+                  borderColor: separatorColor,
+                },
+              ]}
+            >
+              <ThemeToggleRow palette={palette} featureTint={featureTint} />
+            </View>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -294,6 +312,50 @@ function LimitRow({ icon, label, value, palette }: { icon: string; label: string
       <RNText style={[styles.limitValue, { color: palette.text }]}>
         {value}
       </RNText>
+    </View>
+  );
+}
+
+function ThemeToggleRow({ palette, featureTint }: { palette: any; featureTint: string }) {
+  const { mode, toggleTheme } = useThemeMode();
+  const isDark = mode === 'dark';
+
+  return (
+    <View style={styles.actionItem}>
+      <View style={[styles.actionIcon, { backgroundColor: featureTint }]}>
+        <MaterialCommunityIcons
+          name={isDark ? 'weather-night' : 'weather-sunny'}
+          size={20}
+          color={palette.primary}
+        />
+      </View>
+      <View style={styles.actionContent}>
+        <RNText style={[styles.actionLabel, { color: palette.text }]}>
+          Theme
+        </RNText>
+        <RNText style={[styles.actionDescription, { color: palette.textSecondary }]}>
+          {isDark ? 'Dark mode' : 'Light mode'}
+        </RNText>
+      </View>
+      <Pressable
+        style={[
+          styles.themeToggle,
+          {
+            backgroundColor: isDark ? palette.primary : featureTint,
+          },
+        ]}
+        onPress={toggleTheme}
+      >
+        <View
+          style={[
+            styles.themeToggleThumb,
+            {
+              backgroundColor: isDark ? '#FFFFFF' : palette.textSecondary,
+              transform: [{ translateX: isDark ? 18 : 0 }],
+            },
+          ]}
+        />
+      </Pressable>
     </View>
   );
 }
@@ -477,5 +539,17 @@ const styles = StyleSheet.create({
   actionDescription: {
     fontFamily: 'NeuzeitGro-Regular',
     fontSize: 13,
+  },
+  themeToggle: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    padding: 3,
+    justifyContent: 'center',
+  },
+  themeToggleThumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
   },
 });
