@@ -7,6 +7,7 @@ import {
   Animated,
   Pressable,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -21,6 +22,8 @@ import {
   isBiometricAvailable,
   getBiometricLabel,
 } from '../../utils/biometric';
+import { useAuthV2 } from '../../hooks/useAuthV2';
+import * as SecureStore from 'expo-secure-store';
 
 const PASSCODE_LENGTH = 6;
 const MAX_ATTEMPTS = 5;
@@ -34,6 +37,7 @@ interface PasscodeAuthScreenProps {
 export default function PasscodeAuthScreen(props?: PasscodeAuthScreenProps) {
   const navigation = useNavigation();
   const route = useRoute();
+  const { signIn, loading, clearAuthError, user } = useAuthV2();
 
   // Get params from either props or route params
   const params = (route.params as PasscodeAuthScreenProps) || {};
@@ -81,34 +85,67 @@ export default function PasscodeAuthScreen(props?: PasscodeAuthScreenProps) {
     }
   };
 
-  const verifyPasscode = () => {
-    // TODO: Verify against stored passcode from SecureStore
-    const storedPasscode = '123456'; // This should come from SecureStore
+  const verifyPasscode = async () => {
+    try {
+      // Get user email from SecureStore
+      const userEmail = await SecureStore.getItemAsync('user_email');
 
-    if (passcode === storedPasscode) {
+      if (!userEmail) {
+        Alert.alert('Error', 'User email not found. Please sign in with email.');
+        // @ts-ignore
+        navigation.replace('SignIn');
+        return;
+      }
+
+      clearAuthError();
+
+      // Sign in with V2 API using passcode
+      await signIn({
+        email: userEmail,
+        passcode: passcode,
+      }).unwrap();
+
       // Success!
       setTimeout(() => {
         if (onSuccess) {
           onSuccess();
         } else {
           // @ts-ignore
-          navigation.navigate('MainApp');
+          navigation.replace('MainApp');
         }
       }, 200);
-    } else {
-      // Wrong passcode
+    } catch (err: any) {
+      // Check if it's a 401 error (authentication failed)
+      if (err?.response?.status === 401 || err?.message?.includes('401')) {
+        // Passcode authentication not set up or invalid credentials
+        Alert.alert(
+          'Authentication Failed',
+          'Your passcode may not be set up yet or has expired. Please sign in with your email and password.',
+          [
+            {
+              text: 'Sign in with Email',
+              onPress: () => {
+                // Clear stored passcode since it's not valid
+                SecureStore.deleteItemAsync('user_passcode');
+                // @ts-ignore
+                navigation.replace('SignIn');
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      // Wrong passcode or other API error
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
 
       if (newAttempts >= MAX_ATTEMPTS) {
-        setError('Too many attempts. Operation cancelled.');
+        setError('Too many attempts. Please sign in with email.');
         Vibration.vibrate([0, 100, 100, 100]);
         setTimeout(() => {
-          if (onCancel) {
-            onCancel();
-          } else {
-            navigation.goBack();
-          }
+          // @ts-ignore
+          navigation.replace('SignIn');
         }, 2000);
       } else {
         setError(`Incorrect passcode (${newAttempts}/${MAX_ATTEMPTS})`);
@@ -160,12 +197,56 @@ export default function PasscodeAuthScreen(props?: PasscodeAuthScreenProps) {
     const result = await authenticateWithBiometric(message);
 
     if (result.success) {
-      // Success!
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        // @ts-ignore
-        navigation.navigate('MainApp');
+      try {
+        // Get stored email and passcode
+        const userEmail = await SecureStore.getItemAsync('user_email');
+        const storedPasscode = await SecureStore.getItemAsync('user_passcode');
+
+        if (!userEmail || !storedPasscode) {
+          Alert.alert('Error', 'Authentication data not found. Please sign in with email.');
+          // @ts-ignore
+          navigation.replace('SignIn');
+          return;
+        }
+
+        clearAuthError();
+
+        // Sign in with V2 API using stored passcode
+        await signIn({
+          email: userEmail,
+          passcode: storedPasscode,
+        }).unwrap();
+
+        // Success!
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // @ts-ignore
+          navigation.replace('MainApp');
+        }
+      } catch (error: any) {
+        // Check if it's a 401 error (authentication failed)
+        if (error?.response?.status === 401 || error?.message?.includes('401')) {
+          Alert.alert(
+            'Authentication Failed',
+            'Your passcode may not be set up yet or has expired. Please sign in with your email and password.',
+            [
+              {
+                text: 'Sign in with Email',
+                onPress: () => {
+                  // Clear stored passcode since it's not valid
+                  SecureStore.deleteItemAsync('user_passcode');
+                  // @ts-ignore
+                  navigation.replace('SignIn');
+                },
+              },
+            ]
+          );
+        } else {
+          Alert.alert('Error', error || 'Authentication failed. Please sign in with email.');
+          // @ts-ignore
+          navigation.replace('SignIn');
+        }
       }
     }
     // If failed, user can continue with passcode
@@ -243,6 +324,21 @@ export default function PasscodeAuthScreen(props?: PasscodeAuthScreenProps) {
               biometricIcon={biometricIcon}
             />
           </View>
+
+          {/* Sign in with email link */}
+          {mode === 'login' && (
+            <Pressable
+              style={styles.emailLinkContainer}
+              onPress={() => {
+                // @ts-ignore
+                navigation.replace('SignIn');
+              }}
+            >
+              <RNText style={[styles.emailLinkText, { color: palette.primary }]}>
+                Sign in with email instead
+              </RNText>
+            </Pressable>
+          )}
         </View>
       </SafeAreaView>
     </View>
@@ -301,5 +397,15 @@ const styles = StyleSheet.create({
   numPadContainer: {
     alignItems: 'center',
     marginTop: 'auto',
+  },
+  emailLinkContainer: {
+    alignItems: 'center',
+    marginTop: theme.spacing.lg,
+    padding: theme.spacing.sm,
+  },
+  emailLinkText: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

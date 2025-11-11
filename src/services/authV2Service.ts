@@ -190,28 +190,39 @@ export const getDeviceInfo = async () => {
 
 /**
  * Get user's location (requires permission)
+ * Returns undefined immediately if permission denied or on error
  */
 export const getUserLocation = async (): Promise<string | undefined> => {
   try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
+    // Timeout after 3 seconds to prevent hanging
+    const timeoutPromise = new Promise<undefined>((resolve) =>
+      setTimeout(() => resolve(undefined), 3000)
+    );
+
+    const locationPromise = (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        return undefined;
+      }
+
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+      const address = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (address && address.length > 0) {
+        const addr = address[0];
+        return `${addr.city || ''}, ${addr.region || ''}, ${addr.country || ''}`.trim();
+      }
       return undefined;
-    }
+    })();
 
-    const location = await Location.getCurrentPositionAsync({});
-    const address = await Location.reverseGeocodeAsync({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-    });
-
-    if (address && address.length > 0) {
-      const addr = address[0];
-      return `${addr.city || ''}, ${addr.region || ''}, ${addr.country || ''}`.trim();
-    }
+    return await Promise.race([locationPromise, timeoutPromise]);
   } catch (error) {
     console.warn('Error getting location:', error);
+    return undefined;
   }
-  return undefined;
 };
 
 // ============================================
@@ -240,16 +251,21 @@ export const signUp = async (data: SignUpRequest): Promise<AuthResponse> => {
  * POST /api/v2/auth/signin
  */
 export const signIn = async (data: SignInRequest): Promise<AuthResponse> => {
-  const deviceInfo = await getDeviceInfo();
-  const location = await getUserLocation();
+  try {
+    const deviceInfo = await getDeviceInfo();
+    const location = await getUserLocation();
 
-  const response = await apiClient.post(`${V2_AUTH_BASE}/signin`, {
-    ...data,
-    ...deviceInfo,
-    location,
-  });
+    const response = await apiClient.post(`${V2_AUTH_BASE}/signin`, {
+      ...data,
+      ...deviceInfo,
+      location,
+    });
 
-  return response.data;
+    return response.data;
+  } catch (error: any) {
+    console.error('Sign in error:', error);
+    throw error;
+  }
 };
 
 /**

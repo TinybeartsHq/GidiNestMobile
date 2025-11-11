@@ -23,30 +23,43 @@ export default function PINSetupScreen() {
   const isDark = mode === 'dark';
   const navigation = useNavigation();
   const route = useRoute();
-  const { setup, change, loading } = usePin();
+  const { setup, change, verify, loading } = usePin();
 
   // @ts-ignore
   const params = route.params || {};
   const isChangeMode = params.mode === 'change';
-  const oldPin = params.oldPin || '';
 
-  const [step, setStep] = useState<'create' | 'confirm'>('create');
+  const [step, setStep] = useState<'verifyOld' | 'create' | 'confirm' | 'success'>(
+    isChangeMode ? 'verifyOld' : 'create'
+  );
+  const [oldPin, setOldPin] = useState('');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
   const [shakeAnimation] = useState(new Animated.Value(0));
 
-  const currentPin = step === 'create' ? pin : confirmPin;
-  const title = step === 'create'
-    ? (isChangeMode ? 'Change Withdrawal PIN' : 'Create Withdrawal PIN')
-    : 'Confirm PIN';
+  const currentPin =
+    step === 'verifyOld' ? oldPin :
+    step === 'create' ? pin : confirmPin;
+
+  const title =
+    step === 'verifyOld' ? 'Verify Current PIN' :
+    step === 'create' ? (isChangeMode ? 'New PIN' : 'Create Withdrawal PIN') :
+    'Confirm PIN';
+
   const subtitle =
+    step === 'verifyOld' ? 'Enter your current 4-digit PIN' :
     step === 'create'
       ? (isChangeMode ? 'Enter your new 4-digit PIN' : 'Enter a 4-digit PIN for withdrawals')
       : 'Re-enter your PIN to confirm';
 
   useEffect(() => {
-    if (step === 'create' && pin.length === PIN_LENGTH) {
+    if (step === 'verifyOld' && oldPin.length === PIN_LENGTH) {
+      // Verify old PIN with API
+      setTimeout(() => {
+        verifyOldPin();
+      }, 200);
+    } else if (step === 'create' && pin.length === PIN_LENGTH) {
       // Move to confirmation step
       setTimeout(() => {
         setStep('confirm');
@@ -69,7 +82,7 @@ export default function PINSetupScreen() {
         }, 1000);
       }
     }
-  }, [pin, confirmPin, step]);
+  }, [oldPin, pin, confirmPin, step]);
 
   const shake = () => {
     Animated.sequence([
@@ -96,6 +109,25 @@ export default function PINSetupScreen() {
     ]).start();
   };
 
+  const verifyOldPin = async () => {
+    try {
+      // Verify the old PIN with the API
+      await verify({ pin: oldPin }).unwrap();
+
+      // If successful, move to create new PIN step
+      setStep('create');
+    } catch (err: any) {
+      // Wrong old PIN
+      setError('Incorrect PIN');
+      Vibration.vibrate([0, 50, 50, 50]);
+      shake();
+      setTimeout(() => {
+        setOldPin('');
+        setError('');
+      }, 1000);
+    }
+  };
+
   const handleSuccess = async () => {
     try {
       if (isChangeMode) {
@@ -106,23 +138,17 @@ export default function PINSetupScreen() {
           new_pin_confirmation: confirmPin,
         }).unwrap();
 
-        // Show transaction limit notice for security
-        Alert.alert(
-          'PIN Changed Successfully',
-          'For your security, your transaction limit has been temporarily reduced to ₦10,000 for the next 24 hours.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                if (params.onSuccess) {
-                  params.onSuccess();
-                } else {
-                  navigation.goBack();
-                }
-              },
-            },
-          ]
-        );
+        // Show success screen
+        setStep('success');
+
+        // Auto-navigate after 2 seconds
+        setTimeout(() => {
+          if (params.onSuccess) {
+            params.onSuccess();
+          } else {
+            navigation.goBack();
+          }
+        }, 2000);
       } else {
         // Initial setup - save PIN
         await setup({
@@ -130,13 +156,18 @@ export default function PINSetupScreen() {
           pin_confirmation: confirmPin,
         }).unwrap();
 
-        // Navigate to main app
-        if (params.onSuccess) {
-          params.onSuccess();
-        } else {
-          // @ts-ignore
-          navigation.navigate('MainApp');
-        }
+        // Show success screen
+        setStep('success');
+
+        // Auto-navigate after 2 seconds
+        setTimeout(() => {
+          if (params.onSuccess) {
+            params.onSuccess();
+          } else {
+            // @ts-ignore
+            navigation.replace('MainApp');
+          }
+        }, 2000);
       }
     } catch (err: any) {
       setError(err || 'Failed to save PIN');
@@ -152,7 +183,11 @@ export default function PINSetupScreen() {
   };
 
   const handleNumberPress = (num: string) => {
-    if (step === 'create') {
+    if (step === 'verifyOld') {
+      if (oldPin.length < PIN_LENGTH) {
+        setOldPin(oldPin + num);
+      }
+    } else if (step === 'create') {
       if (pin.length < PIN_LENGTH) {
         setPin(pin + num);
       }
@@ -164,12 +199,37 @@ export default function PINSetupScreen() {
   };
 
   const handleBackspace = () => {
-    if (step === 'create') {
+    if (step === 'verifyOld') {
+      setOldPin(oldPin.slice(0, -1));
+    } else if (step === 'create') {
       setPin(pin.slice(0, -1));
     } else {
       setConfirmPin(confirmPin.slice(0, -1));
     }
   };
+
+  // Success screen
+  if (step === 'success') {
+    return (
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <View style={styles.successContainer}>
+            <View style={[styles.successIconWrapper, { backgroundColor: '#10B981' + '20' }]}>
+              <MaterialCommunityIcons name="check-circle" size={80} color="#10B981" />
+            </View>
+            <RNText style={[styles.successTitle, { color: palette.text }]}>
+              {isChangeMode ? 'PIN Changed!' : 'PIN Created!'}
+            </RNText>
+            <RNText style={[styles.successSubtitle, { color: palette.textSecondary }]}>
+              {isChangeMode
+                ? 'Your withdrawal PIN has been updated successfully. For security, your transaction limit is temporarily ₦10,000 for 24 hours.'
+                : 'Your withdrawal PIN has been set up successfully. You\'ll need this PIN to approve withdrawals.'}
+            </RNText>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
@@ -272,5 +332,30 @@ const styles = StyleSheet.create({
   },
   numPadContainer: {
     alignItems: 'center',
+  },
+  successContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.xl,
+    gap: theme.spacing.xl,
+  },
+  successIconWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successTitle: {
+    fontFamily: 'NeuzeitGro-Bold',
+    fontSize: 28,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

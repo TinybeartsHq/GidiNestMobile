@@ -12,12 +12,15 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { Switch } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as SecureStore from 'expo-secure-store';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import type { RootState } from '../../redux/types';
 import type { ProfileStackParamList } from '../../navigation/ProfileNavigator';
+import { useAuthV2 } from '../../hooks/useAuthV2';
+import RestrictionBanner from '../../components/RestrictionBanner';
 
 const formatCurrency = (value: number) => {
   return `₦${value.toLocaleString('en-NG', {
@@ -34,6 +37,7 @@ export default function ProfileScreen() {
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ProfileNavigationProp>();
+  const { logout, user: userV2, isRestricted } = useAuthV2();
 
   const cardBackground = isDark ? palette.card : '#FFFFFF';
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
@@ -44,10 +48,12 @@ export default function ProfileScreen() {
     [insets.bottom]
   );
 
-  // Mock user data
-  const userName = user?.first_name || user?.name || 'GidiNest User';
-  const userEmail = user?.email || 'user@gidinest.com';
-  const userPhone = user?.phone || '+234 800 000 0000';
+  // User data - prefer V2 if available
+  const currentUser = userV2 || user;
+  const userName = currentUser?.first_name || currentUser?.name || 'GidiNest User';
+  const userEmail = currentUser?.email || 'user@gidinest.com';
+  const userPhone = currentUser?.phone || '+234 800 000 0000';
+  const accountTier = userV2?.account_tier || 'Tier 1';
 
   // Mock stats
   const stats = useMemo(
@@ -124,8 +130,38 @@ export default function ProfileScreen() {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: () => {
-            // Handle logout
+          onPress: async () => {
+            try {
+              await logout().unwrap();
+
+              // Clear stored credentials for passcode auth
+              // Note: We keep user_email and has_passcode_setup flag so the app can detect if user has passcode set up
+              // These will be overwritten when a different user logs in
+              await SecureStore.deleteItemAsync('user_passcode');
+              await SecureStore.deleteItemAsync('biometric_enabled');
+              // Note: We don't clear user_email or has_passcode_setup here - they're needed for next login
+
+              // Navigate to root navigator and reset to AuthLanding
+              const rootNavigation = navigation.getParent()?.getParent();
+              if (rootNavigation) {
+                rootNavigation.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'AuthLanding' }],
+                  })
+                );
+              } else {
+                // Fallback: try direct navigation if parent structure is different
+                navigation.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'AuthLanding' }],
+                  })
+                );
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
           },
         },
       ]
@@ -146,6 +182,9 @@ export default function ProfileScreen() {
               <View style={[styles.headerAccent, { backgroundColor: palette.primary }]} />
             </View>
           </View>
+
+          {/* Restriction Banner */}
+          {isRestricted && <RestrictionBanner showDetails={true} />}
 
           {/* User Info Card */}
           <View

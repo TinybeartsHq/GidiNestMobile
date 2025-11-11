@@ -16,15 +16,18 @@ import { Text, TextInput, Button, Snackbar, HelperText, Checkbox, IconButton } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
+import { useAuthV2 } from '../../hooks/useAuthV2';
+import * as SecureStore from 'expo-secure-store';
 
 const { height } = Dimensions.get('window');
 
-const PHONE_REGEX = /^\+?[0-9]{7,15}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignInScreen() {
   const navigation = useNavigation();
   const { mode, palette } = useThemeMode();
   const isDark = mode === 'dark';
+  const { signIn, loading, error, user, clearAuthError } = useAuthV2();
 
   const passwordInputRef = useRef<any>(null);
   const textInputTheme = useMemo(
@@ -34,15 +37,13 @@ export default function SignInScreen() {
     []
   );
 
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [touched, setTouched] = useState<{ phone: boolean; password: boolean }>({
-    phone: false,
+  const [touched, setTouched] = useState<{ email: boolean; password: boolean }>({
+    email: false,
     password: false,
   });
 
@@ -105,12 +106,12 @@ export default function SignInScreen() {
     [palette, isDark, borderNeutral, inputBackground]
   );
 
-  const phoneError = useMemo(() => {
-    if (!touched.phone) return '';
-    if (!phoneNumber.trim()) return 'Phone number is required.';
-    if (!PHONE_REGEX.test(phoneNumber.trim())) return 'Enter a valid phone number.';
+  const emailError = useMemo(() => {
+    if (!touched.email) return '';
+    if (!email.trim()) return 'Email is required.';
+    if (!EMAIL_REGEX.test(email.trim())) return 'Enter a valid email address.';
     return '';
-  }, [phoneNumber, touched.phone]);
+  }, [email, touched.email]);
 
   const passwordError = useMemo(() => {
     if (!touched.password) return '';
@@ -119,47 +120,54 @@ export default function SignInScreen() {
     return '';
   }, [password, touched.password]);
 
-  const isFormValid = !phoneError && !passwordError && !!phoneNumber.trim() && !!password.trim();
+  const isFormValid = useMemo(() => {
+    return !emailError && !passwordError && !!email.trim() && !!password.trim();
+  }, [emailError, passwordError, email, password]);
 
   const handleSignIn = useCallback(async () => {
     Keyboard.dismiss();
 
     if (!isFormValid) {
-      setTouched({ phone: true, password: true });
-      setErrorMessage('Please fix the highlighted fields.');
-      setSnackbarVisible(true);
+      setTouched({ email: true, password: true });
+      Alert.alert('Invalid Input', 'Please fix the highlighted fields.');
       return;
     }
 
-    setErrorMessage(null);
-    setLoading(true);
+    try {
+      clearAuthError();
 
-    setTimeout(() => {
-      setLoading(false);
-      // TODO: Check if user has passcode set (use SecureStore)
-      // For new users, navigate to PasscodeSetup
-      // For returning users, navigate to PasscodeAuth
+      const result = await signIn({
+        email: email.trim(),
+        password: password.trim(),
+      }).unwrap();
 
-      // For now, assuming new user flow
-      const hasPasscode = false; // This should come from SecureStore
-
-      if (hasPasscode) {
-        // @ts-ignore - navigation type will be configured later
-        navigation.replace('PasscodeAuth');
+      // Store user email for passcode authentication
+      await SecureStore.setItemAsync('user_email', email.trim());
+      
+      // Store flag indicating if user has passcode set up
+      // This helps determine if we should show PasscodeAuth on next login
+      if (result.user?.has_passcode) {
+        await SecureStore.setItemAsync('has_passcode_setup', 'true');
       } else {
-        // @ts-ignore - navigation type will be configured later
-        navigation.replace('PasscodeSetup');
+        await SecureStore.deleteItemAsync('has_passcode_setup');
       }
-    }, 600);
-  }, [isFormValid, navigation, password, phoneNumber]);
+
+      // Success - navigation will be handled by app state
+      // @ts-ignore
+      navigation.replace('MainApp');
+    } catch (err: any) {
+      const errorMsg = err || 'Sign in failed. Please check your credentials.';
+      Alert.alert('Sign In Failed', errorMsg);
+    }
+  }, [isFormValid, email, password, signIn, clearAuthError, navigation]);
 
   const handleDismissSnackbar = () => {
     setSnackbarVisible(false);
-    setErrorMessage(null);
+    clearAuthError();
   };
 
-  const handlePhoneSubmit = () => {
-    setTouched((prev) => ({ ...prev, phone: true }));
+  const handleEmailSubmit = () => {
+    setTouched((prev) => ({ ...prev, email: true }));
     passwordInputRef.current?.focus();
   };
 
@@ -203,87 +211,89 @@ export default function SignInScreen() {
                   <IconButton icon="arrow-left" onPress={handleBack} accessibilityLabel="Go back" />
                   <Text style={[styles.heroTitle, dynamicStyles.title]}>Welcome back, guardian</Text>
                   <Text style={[styles.heroSubtitle, dynamicStyles.subtitle]}>
-                    Sign in with your phone number to keep your nest growing steadily.
+                    Sign in to keep your nest growing steadily.
                   </Text>
                 </View>
 
                 <View style={[styles.formBlock, dynamicStyles.formCard]}>
-                  <Text style={[styles.fieldTitle, { color: palette.text }]}>Phone number</Text>
+                  {/* Email Input */}
+                  <Text style={[styles.fieldTitle, { color: palette.text }]}>Email address</Text>
                   <TextInput
                     theme={textInputTheme}
-                    value={phoneNumber}
-                    onChangeText={(value) => setPhoneNumber(value)}
-                    onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
-                    placeholder="+234 812 345 6789"
-                    keyboardType="phone-pad"
+                    value={email}
+                    onChangeText={(value) => setEmail(value)}
+                    onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
+                    placeholder="you@example.com"
+                    keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
-                    autoComplete="tel"
+                    autoComplete="email"
                     returnKeyType="next"
-                    onSubmitEditing={handlePhoneSubmit}
+                    onSubmitEditing={handleEmailSubmit}
                     blurOnSubmit={false}
                     style={[styles.input, dynamicStyles.input]}
                     mode="outlined"
                     outlineColor={borderNeutral}
                     activeOutlineColor={palette.primary}
                     contentStyle={styles.inputContent}
-                    textContentType="telephoneNumber"
-                    error={!!phoneError}
+                    textContentType="emailAddress"
+                    error={!!emailError}
                   />
-                  <HelperText type="error" visible={!!phoneError} style={styles.helperText}>
-                    {phoneError}
+                  <HelperText type="error" visible={!!emailError} style={styles.helperText}>
+                    {emailError}
                   </HelperText>
 
+                  {/* Password Input */}
                   <Text style={[styles.fieldTitle, { color: palette.text }]}>Password</Text>
-                  <TextInput
-                    ref={passwordInputRef}
-                    theme={textInputTheme}
-                    value={password}
-                    onChangeText={(value) => setPassword(value)}
-                    onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="password"
-                    returnKeyType="done"
-                    onSubmitEditing={handlePasswordSubmit}
-                    right={
-                      <TextInput.Icon
-                        icon={showPassword ? 'eye-off' : 'eye'}
-                        onPress={() => setShowPassword((prev) => !prev)}
-                        forceTextInputFocus={false}
+                      <TextInput
+                        ref={passwordInputRef}
+                        theme={textInputTheme}
+                        value={password}
+                        onChangeText={(value) => setPassword(value)}
+                        onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+                        secureTextEntry={!showPassword}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        autoComplete="password"
+                        returnKeyType="done"
+                        onSubmitEditing={handlePasswordSubmit}
+                        right={
+                          <TextInput.Icon
+                            icon={showPassword ? 'eye-off' : 'eye'}
+                            onPress={() => setShowPassword((prev) => !prev)}
+                            forceTextInputFocus={false}
+                          />
+                        }
+                        style={[styles.input, styles.passwordInput, dynamicStyles.input]}
+                        mode="outlined"
+                        outlineColor={borderNeutral}
+                        activeOutlineColor={palette.primary}
+                        contentStyle={styles.inputContent}
+                        textContentType="password"
+                        error={!!passwordError}
                       />
-                    }
-                    style={[styles.input, styles.passwordInput, dynamicStyles.input]}
-                    mode="outlined"
-                    outlineColor={borderNeutral}
-                    activeOutlineColor={palette.primary}
-                    contentStyle={styles.inputContent}
-                    textContentType="password"
-                    error={!!passwordError}
-                  />
-                  <HelperText type="error" visible={!!passwordError} style={styles.helperText}>
-                    {passwordError}
-                  </HelperText>
+                      <HelperText type="error" visible={!!passwordError} style={styles.helperText}>
+                        {passwordError}
+                      </HelperText>
 
-                  <View style={styles.optionsRow}>
-                    <View style={styles.rememberRow}>
-                      <Checkbox status={rememberMe ? 'checked' : 'unchecked'} onPress={() => setRememberMe((prev) => !prev)} />
-                      <Text style={[styles.rememberLabel, { color: palette.textSecondary }]}>Remember me</Text>
-                    </View>
-                    <Button
-                      mode="text"
-                      compact
-                      textColor={palette.primary}
-                      labelStyle={styles.linkText}
-                      onPress={() => {
-                        Keyboard.dismiss();
-                        Alert.alert('Forgot password', 'Password recovery will be available soon.');
-                      }}
-                    >
-                      Forgot password?
-                    </Button>
-                  </View>
+                      <View style={styles.optionsRow}>
+                        <View style={styles.rememberRow}>
+                          <Checkbox status={rememberMe ? 'checked' : 'unchecked'} onPress={() => setRememberMe((prev) => !prev)} />
+                          <Text style={[styles.rememberLabel, { color: palette.textSecondary }]}>Remember me</Text>
+                        </View>
+                        <Button
+                          mode="text"
+                          compact
+                          textColor={palette.primary}
+                          labelStyle={styles.linkText}
+                          onPress={() => {
+                            Keyboard.dismiss();
+                            Alert.alert('Forgot password', 'Password recovery will be available soon.');
+                          }}
+                        >
+                          Forgot password?
+                        </Button>
+                      </View>
 
                   <Button
                     mode="contained"
@@ -329,7 +339,7 @@ export default function SignInScreen() {
         </SafeAreaView>
 
         <Snackbar
-          visible={snackbarVisible}
+          visible={snackbarVisible || !!error}
           onDismiss={handleDismissSnackbar}
           duration={4000}
           action={{
@@ -338,7 +348,7 @@ export default function SignInScreen() {
           }}
           style={[styles.snackbar, dynamicStyles.snackbar]}
         >
-          {errorMessage || 'An error occurred'}
+          {error || 'An error occurred'}
         </Snackbar>
       </View>
     </TouchableWithoutFeedback>

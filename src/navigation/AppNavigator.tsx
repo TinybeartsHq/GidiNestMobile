@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import { useThemeMode } from '../theme/ThemeProvider';
 import AuthLandingScreen from '../screens/auth/AuthLandingScreen';
 import SignInScreen from '../screens/auth/SignInScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
@@ -22,10 +25,45 @@ import BankTransferDetailsScreen from '../screens/savings/BankTransferDetailsScr
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
+  const [initialRoute, setInitialRoute] = useState<string | null>(null);
+  const { palette } = useThemeMode();
+
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+
+  const checkLoginStatus = async () => {
+    try {
+      // Check if user has email stored and if they have passcode set up
+      const userEmail = await SecureStore.getItemAsync('user_email');
+      const hasPasscodeSetup = await SecureStore.getItemAsync('has_passcode_setup');
+
+      if (userEmail && hasPasscodeSetup === 'true') {
+        // User has passcode set up - show PasscodeAuth
+        setInitialRoute('PasscodeAuth');
+      } else {
+        // No passcode or new user - show AuthLanding
+        setInitialRoute('AuthLanding');
+      }
+    } catch (error) {
+      console.error('Error checking login status:', error);
+      setInitialRoute('AuthLanding');
+    }
+  };
+
+  // Show loading indicator while checking
+  if (!initialRoute) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: palette.background }]}>
+        <ActivityIndicator size="large" color={palette.primary} />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="AuthLanding"
+        initialRouteName={initialRoute}
         screenOptions={{
           headerShown: false,
         }}
@@ -58,5 +96,13 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 
 

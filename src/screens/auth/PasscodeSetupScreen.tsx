@@ -9,11 +9,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import PasscodeInput from '../../components/PasscodeInput';
 import NumPad from '../../components/NumPad';
 import { usePasscode } from '../../hooks/useAuthV2';
+import * as SecureStore from 'expo-secure-store';
 
 const PASSCODE_LENGTH = 6;
 
@@ -22,30 +24,43 @@ export default function PasscodeSetupScreen() {
   const isDark = mode === 'dark';
   const navigation = useNavigation();
   const route = useRoute();
-  const { setup, change, loading } = usePasscode();
+  const { setup, change, verify, loading } = usePasscode();
 
   // @ts-ignore
   const params = route.params || {};
   const isChangeMode = params.mode === 'change';
-  const oldPasscode = params.oldPasscode || '';
 
-  const [step, setStep] = useState<'create' | 'confirm'>('create');
+  const [step, setStep] = useState<'verifyOld' | 'create' | 'confirm' | 'success'>(
+    isChangeMode ? 'verifyOld' : 'create'
+  );
+  const [oldPasscode, setOldPasscode] = useState('');
   const [passcode, setPasscode] = useState('');
   const [confirmPasscode, setConfirmPasscode] = useState('');
   const [error, setError] = useState('');
   const [shakeAnimation] = useState(new Animated.Value(0));
 
-  const currentPasscode = step === 'create' ? passcode : confirmPasscode;
-  const title = step === 'create'
-    ? (isChangeMode ? 'Change Passcode' : 'Create Passcode')
-    : 'Confirm Passcode';
+  const currentPasscode =
+    step === 'verifyOld' ? oldPasscode :
+    step === 'create' ? passcode : confirmPasscode;
+
+  const title =
+    step === 'verifyOld' ? 'Verify Current Passcode' :
+    step === 'create' ? (isChangeMode ? 'New Passcode' : 'Create Passcode') :
+    'Confirm Passcode';
+
   const subtitle =
+    step === 'verifyOld' ? 'Enter your current 6-digit passcode' :
     step === 'create'
       ? (isChangeMode ? 'Enter your new 6-digit passcode' : 'Enter a 6-digit passcode')
       : 'Re-enter your passcode to confirm';
 
   useEffect(() => {
-    if (step === 'create' && passcode.length === PASSCODE_LENGTH) {
+    if (step === 'verifyOld' && oldPasscode.length === PASSCODE_LENGTH) {
+      // Verify old passcode with API
+      setTimeout(() => {
+        verifyOldPasscode();
+      }, 200);
+    } else if (step === 'create' && passcode.length === PASSCODE_LENGTH) {
       // Move to confirmation step
       setTimeout(() => {
         setStep('confirm');
@@ -68,7 +83,7 @@ export default function PasscodeSetupScreen() {
         }, 1000);
       }
     }
-  }, [passcode, confirmPasscode, step]);
+  }, [oldPasscode, passcode, confirmPasscode, step]);
 
   const shake = () => {
     Animated.sequence([
@@ -95,33 +110,51 @@ export default function PasscodeSetupScreen() {
     ]).start();
   };
 
+  const verifyOldPasscode = async () => {
+    try {
+      // Verify the old passcode with the API
+      await verify({ passcode: oldPasscode }).unwrap();
+
+      // If successful, move to create new passcode step
+      setStep('create');
+    } catch (err: any) {
+      // Wrong old passcode
+      setError('Incorrect passcode');
+      Vibration.vibrate([0, 50, 50, 50]);
+      shake();
+      setTimeout(() => {
+        setOldPasscode('');
+        setError('');
+      }, 1000);
+    }
+  };
+
   const handleSuccess = async () => {
     try {
       if (isChangeMode) {
         // Change existing passcode
-        const result = await change({
+        await change({
           old_passcode: oldPasscode,
           new_passcode: passcode,
           new_passcode_confirmation: confirmPasscode,
         }).unwrap();
 
-        // Show transaction limit notice for security
-        Alert.alert(
-          'Passcode Changed Successfully',
-          'For your security, your transaction limit has been temporarily reduced to ₦10,000 for the next 24 hours.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                if (params.onSuccess) {
-                  params.onSuccess();
-                } else {
-                  navigation.goBack();
-                }
-              },
-            },
-          ]
-        );
+        // Update stored passcode for biometric authentication
+        await SecureStore.setItemAsync('user_passcode', passcode);
+        // Store flag indicating passcode is set up
+        await SecureStore.setItemAsync('has_passcode_setup', 'true');
+
+        // Show success screen
+        setStep('success');
+
+        // Auto-navigate after 2 seconds
+        setTimeout(() => {
+          if (params.onSuccess) {
+            params.onSuccess();
+          } else {
+            navigation.goBack();
+          }
+        }, 2000);
       } else {
         // Initial setup - save passcode
         await setup({
@@ -129,13 +162,23 @@ export default function PasscodeSetupScreen() {
           passcode_confirmation: confirmPasscode,
         }).unwrap();
 
-        // Navigate to PIN setup
-        if (params.onSuccess) {
-          params.onSuccess();
-        } else {
-          // @ts-ignore
-          navigation.navigate('PINSetup');
-        }
+        // Store passcode securely for biometric authentication
+        await SecureStore.setItemAsync('user_passcode', passcode);
+        // Store flag indicating passcode is set up
+        await SecureStore.setItemAsync('has_passcode_setup', 'true');
+
+        // Show success screen
+        setStep('success');
+
+        // Auto-navigate after 2 seconds
+        setTimeout(() => {
+          if (params.onSuccess) {
+            params.onSuccess();
+          } else {
+            // @ts-ignore
+            navigation.navigate('PINSetup');
+          }
+        }, 2000);
       }
     } catch (err: any) {
       setError(err || 'Failed to save passcode');
@@ -151,7 +194,11 @@ export default function PasscodeSetupScreen() {
   };
 
   const handleNumberPress = (num: string) => {
-    if (step === 'create') {
+    if (step === 'verifyOld') {
+      if (oldPasscode.length < PASSCODE_LENGTH) {
+        setOldPasscode(oldPasscode + num);
+      }
+    } else if (step === 'create') {
       if (passcode.length < PASSCODE_LENGTH) {
         setPasscode(passcode + num);
       }
@@ -163,12 +210,37 @@ export default function PasscodeSetupScreen() {
   };
 
   const handleBackspace = () => {
-    if (step === 'create') {
+    if (step === 'verifyOld') {
+      setOldPasscode(oldPasscode.slice(0, -1));
+    } else if (step === 'create') {
       setPasscode(passcode.slice(0, -1));
     } else {
       setConfirmPasscode(confirmPasscode.slice(0, -1));
     }
   };
+
+  // Success screen
+  if (step === 'success') {
+    return (
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <View style={styles.successContainer}>
+            <View style={[styles.successIconWrapper, { backgroundColor: '#10B981' + '20' }]}>
+              <MaterialCommunityIcons name="check-circle" size={80} color="#10B981" />
+            </View>
+            <RNText style={[styles.successTitle, { color: palette.text }]}>
+              {isChangeMode ? 'Passcode Changed!' : 'Passcode Created!'}
+            </RNText>
+            <RNText style={[styles.successSubtitle, { color: palette.textSecondary }]}>
+              {isChangeMode
+                ? 'Your login passcode has been updated successfully. For security, your transaction limit is temporarily ₦10,000 for 24 hours.'
+                : 'Your login passcode has been set up successfully. You can now use it for quick login.'}
+            </RNText>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
@@ -251,5 +323,30 @@ const styles = StyleSheet.create({
   },
   numPadContainer: {
     alignItems: 'center',
+  },
+  successContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.xl,
+    gap: theme.spacing.xl,
+  },
+  successIconWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successTitle: {
+    fontFamily: 'NeuzeitGro-Bold',
+    fontSize: 28,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

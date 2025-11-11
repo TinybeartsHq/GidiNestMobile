@@ -6,6 +6,7 @@ import { Text, Button, useTheme } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 
@@ -33,6 +34,20 @@ export default function AuthLandingScreen() {
 
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(100, 116, 139, 0.08)';
   const actionTint = isDark ? ['rgba(124, 58, 237, 0.24)', 'rgba(17, 24, 39, 0.72)'] : ['rgba(123, 97, 255, 0.18)', 'rgba(255, 255, 255, 0.92)'];
+
+  const handleLogin = async () => {
+    // Check if user email exists and if they have passcode set up
+    const userEmail = await SecureStore.getItemAsync('user_email');
+    const hasPasscodeSetup = await SecureStore.getItemAsync('has_passcode_setup');
+
+    if (userEmail && hasPasscodeSetup === 'true') {
+      // User has passcode set up - go directly to passcode auth
+      navigation.navigate('PasscodeAuth' as never);
+    } else {
+      // No passcode or new user - go to email/password login
+      navigation.navigate('SignIn' as never);
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
@@ -67,7 +82,7 @@ export default function AuthLandingScreen() {
               <View style={styles.primaryActions}>
                 <Button
                   mode="contained"
-                  onPress={() => navigation.navigate('SignIn' as never)}
+                  onPress={handleLogin}
                   style={styles.primaryButton}
                   compact
                   contentStyle={styles.primaryContent}

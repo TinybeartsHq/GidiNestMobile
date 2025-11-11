@@ -6,6 +6,7 @@ import {
   Pressable,
   Text as RNText,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -16,21 +17,29 @@ import { theme } from '../../theme/theme';
 import {
   isBiometricAvailable,
   getBiometricLabel,
+  authenticateWithBiometric,
 } from '../../utils/biometric';
+import { useAuthV2, usePasscode, usePin } from '../../hooks/useAuthV2';
+import * as SecureStore from 'expo-secure-store';
 
 export default function SecuritySettingsScreen() {
   const { palette, mode } = useThemeMode();
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { user } = useAuthV2();
+  const { hasPasscode: hasPasscodeV2 } = usePasscode();
+  const { hasPin: hasPinV2, checkStatus } = usePin();
 
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricLabel, setBiometricLabel] = useState('Biometric');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [loginAlerts, setLoginAlerts] = useState(true);
-  const [hasPasscode, setHasPasscode] = useState(true); // TODO: Check from SecureStore
-  const [hasPIN, setHasPIN] = useState(true); // TODO: Check from SecureStore
+
+  // Use V2 user data for passcode/PIN status
+  const hasPasscode = user?.has_passcode || hasPasscodeV2;
+  const hasPIN = user?.has_pin || hasPinV2;
 
   const cardBackground = isDark ? palette.card : '#FFFFFF';
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
@@ -43,6 +52,8 @@ export default function SecuritySettingsScreen() {
 
   useEffect(() => {
     checkBiometric();
+    checkBiometricSettings();
+    checkStatus();
   }, []);
 
   const checkBiometric = async () => {
@@ -55,48 +66,74 @@ export default function SecuritySettingsScreen() {
     }
   };
 
-  const handleChangePasscode = () => {
-    // To change passcode, user must verify their PIN first
-    // @ts-ignore
-    navigation.navigate('PINAuth', {
-      mode: 'verify',
-      onSuccess: () => {
-        // After PIN verification, navigate to PasscodeSetup
-        // @ts-ignore
-        navigation.navigate('PasscodeSetup', {
-          mode: 'change',
-          onSuccess: () => {
-            // Show 24-hour transaction limit notice
-            navigation.goBack();
-          },
-        });
-      },
-      onCancel: () => {
-        navigation.goBack();
-      },
-    });
+  const checkBiometricSettings = async () => {
+    try {
+      const enabled = await SecureStore.getItemAsync('biometric_enabled');
+      setBiometricEnabled(enabled === 'true');
+    } catch (error) {
+      console.error('Error checking biometric settings:', error);
+    }
   };
 
-  const handleChangePIN = () => {
-    // To change PIN, user must verify their passcode first
-    // @ts-ignore
-    navigation.navigate('PasscodeAuth', {
-      mode: 'verify',
-      onSuccess: () => {
-        // After passcode verification, navigate to PINSetup
-        // @ts-ignore
-        navigation.navigate('PINSetup', {
-          mode: 'change',
-          onSuccess: () => {
-            // Show 24-hour transaction limit notice
-            navigation.goBack();
+  const handleToggleBiometric = async (value: boolean) => {
+    if (value) {
+      // Enabling biometric - authenticate first
+      const result = await authenticateWithBiometric(
+        `Enable ${biometricLabel} for quick login`
+      );
+
+      if (result.success) {
+        setBiometricEnabled(true);
+        await SecureStore.setItemAsync('biometric_enabled', 'true');
+        Alert.alert(
+          'Success',
+          `${biometricLabel} authentication enabled successfully!`
+        );
+      } else {
+        Alert.alert('Authentication Failed', result.error || 'Please try again');
+      }
+    } else {
+      // Disabling biometric - show confirmation
+      Alert.alert(
+        `Disable ${biometricLabel}`,
+        `Are you sure you want to disable ${biometricLabel} authentication?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Disable',
+            style: 'destructive',
+            onPress: async () => {
+              setBiometricEnabled(false);
+              await SecureStore.setItemAsync('biometric_enabled', 'false');
+            },
           },
-        });
-      },
-      onCancel: () => {
-        navigation.goBack();
-      },
-    });
+        ]
+      );
+    }
+  };
+
+  const handleManagePasscode = () => {
+    if (hasPasscode) {
+      // Change passcode
+      // @ts-ignore
+      navigation.navigate('PasscodeSetup', { mode: 'change' });
+    } else {
+      // Setup passcode
+      // @ts-ignore
+      navigation.navigate('PasscodeSetup');
+    }
+  };
+
+  const handleManagePIN = () => {
+    if (hasPIN) {
+      // Change PIN
+      // @ts-ignore
+      navigation.navigate('PINSetup', { mode: 'change' });
+    } else {
+      // Setup PIN
+      // @ts-ignore
+      navigation.navigate('PINSetup');
+    }
   };
 
   return (
@@ -136,7 +173,7 @@ export default function SecuritySettingsScreen() {
               ]}
             >
               {/* Login Passcode */}
-              <Pressable style={styles.menuItem} onPress={handleChangePasscode}>
+              <Pressable style={styles.menuItem} onPress={handleManagePasscode}>
                 <View style={[styles.menuIcon, { backgroundColor: featureTint }]}>
                   <MaterialCommunityIcons name="lock" size={20} color={palette.primary} />
                 </View>
@@ -154,7 +191,7 @@ export default function SecuritySettingsScreen() {
               <View style={[styles.divider, { backgroundColor: separatorColor }]} />
 
               {/* Withdrawal PIN */}
-              <Pressable style={styles.menuItem} onPress={handleChangePIN}>
+              <Pressable style={styles.menuItem} onPress={handleManagePIN}>
                 <View style={[styles.menuIcon, { backgroundColor: featureTint }]}>
                   <MaterialCommunityIcons name="shield-lock" size={20} color={palette.primary} />
                 </View>
@@ -205,7 +242,7 @@ export default function SecuritySettingsScreen() {
                 </View>
                 <Switch
                   value={biometricEnabled}
-                  onValueChange={setBiometricEnabled}
+                  onValueChange={handleToggleBiometric}
                   disabled={!biometricAvailable}
                 />
               </View>
