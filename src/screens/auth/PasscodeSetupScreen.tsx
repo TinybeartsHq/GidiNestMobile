@@ -13,6 +13,7 @@ import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import PasscodeInput from '../../components/PasscodeInput';
 import NumPad from '../../components/NumPad';
+import { usePasscode } from '../../hooks/useAuthV2';
 
 const PASSCODE_LENGTH = 6;
 
@@ -21,10 +22,12 @@ export default function PasscodeSetupScreen() {
   const isDark = mode === 'dark';
   const navigation = useNavigation();
   const route = useRoute();
+  const { setup, change, loading } = usePasscode();
 
   // @ts-ignore
   const params = route.params || {};
   const isChangeMode = params.mode === 'change';
+  const oldPasscode = params.oldPasscode || '';
 
   const [step, setStep] = useState<'create' | 'confirm'>('create');
   const [passcode, setPasscode] = useState('');
@@ -92,36 +95,58 @@ export default function PasscodeSetupScreen() {
     ]).start();
   };
 
-  const handleSuccess = () => {
-    // TODO: Save passcode securely (use SecureStore)
-    console.log('Passcode saved:', passcode);
+  const handleSuccess = async () => {
+    try {
+      if (isChangeMode) {
+        // Change existing passcode
+        const result = await change({
+          old_passcode: oldPasscode,
+          new_passcode: passcode,
+          new_passcode_confirmation: confirmPasscode,
+        }).unwrap();
 
-    if (isChangeMode) {
-      // Show transaction limit notice for security
-      Alert.alert(
-        'Passcode Changed Successfully',
-        'For your security, your transaction limit has been temporarily reduced to ₦10,000 for the next 24 hours.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (params.onSuccess) {
-                params.onSuccess();
-              } else {
-                navigation.goBack();
-              }
+        // Show transaction limit notice for security
+        Alert.alert(
+          'Passcode Changed Successfully',
+          'For your security, your transaction limit has been temporarily reduced to ₦10,000 for the next 24 hours.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                if (params.onSuccess) {
+                  params.onSuccess();
+                } else {
+                  navigation.goBack();
+                }
+              },
             },
-          },
-        ]
-      );
-    } else {
-      // Initial setup - navigate to PIN setup
-      if (params.onSuccess) {
-        params.onSuccess();
+          ]
+        );
       } else {
-        // @ts-ignore
-        navigation.navigate('PINSetup');
+        // Initial setup - save passcode
+        await setup({
+          passcode,
+          passcode_confirmation: confirmPasscode,
+        }).unwrap();
+
+        // Navigate to PIN setup
+        if (params.onSuccess) {
+          params.onSuccess();
+        } else {
+          // @ts-ignore
+          navigation.navigate('PINSetup');
+        }
       }
+    } catch (err: any) {
+      setError(err || 'Failed to save passcode');
+      Vibration.vibrate([0, 50, 50, 50]);
+      shake();
+      setTimeout(() => {
+        setPasscode('');
+        setConfirmPasscode('');
+        setStep('create');
+        setError('');
+      }, 2000);
     }
   };
 

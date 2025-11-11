@@ -14,6 +14,7 @@ import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import PasscodeInput from '../../components/PasscodeInput';
 import NumPad from '../../components/NumPad';
+import { usePin } from '../../hooks/useAuthV2';
 
 const PIN_LENGTH = 4;
 
@@ -22,10 +23,12 @@ export default function PINSetupScreen() {
   const isDark = mode === 'dark';
   const navigation = useNavigation();
   const route = useRoute();
+  const { setup, change, loading } = usePin();
 
   // @ts-ignore
   const params = route.params || {};
   const isChangeMode = params.mode === 'change';
+  const oldPin = params.oldPin || '';
 
   const [step, setStep] = useState<'create' | 'confirm'>('create');
   const [pin, setPin] = useState('');
@@ -93,36 +96,58 @@ export default function PINSetupScreen() {
     ]).start();
   };
 
-  const handleSuccess = () => {
-    // TODO: Save PIN securely (use SecureStore)
-    console.log('PIN saved:', pin);
+  const handleSuccess = async () => {
+    try {
+      if (isChangeMode) {
+        // Change existing PIN
+        await change({
+          old_pin: oldPin,
+          new_pin: pin,
+          new_pin_confirmation: confirmPin,
+        }).unwrap();
 
-    if (isChangeMode) {
-      // Show transaction limit notice for security
-      Alert.alert(
-        'PIN Changed Successfully',
-        'For your security, your transaction limit has been temporarily reduced to ₦10,000 for the next 24 hours.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (params.onSuccess) {
-                params.onSuccess();
-              } else {
-                navigation.goBack();
-              }
+        // Show transaction limit notice for security
+        Alert.alert(
+          'PIN Changed Successfully',
+          'For your security, your transaction limit has been temporarily reduced to ₦10,000 for the next 24 hours.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                if (params.onSuccess) {
+                  params.onSuccess();
+                } else {
+                  navigation.goBack();
+                }
+              },
             },
-          },
-        ]
-      );
-    } else {
-      // Initial setup - navigate to main app
-      if (params.onSuccess) {
-        params.onSuccess();
+          ]
+        );
       } else {
-        // @ts-ignore
-        navigation.navigate('MainApp');
+        // Initial setup - save PIN
+        await setup({
+          pin,
+          pin_confirmation: confirmPin,
+        }).unwrap();
+
+        // Navigate to main app
+        if (params.onSuccess) {
+          params.onSuccess();
+        } else {
+          // @ts-ignore
+          navigation.navigate('MainApp');
+        }
       }
+    } catch (err: any) {
+      setError(err || 'Failed to save PIN');
+      Vibration.vibrate([0, 50, 50, 50]);
+      shake();
+      setTimeout(() => {
+        setPin('');
+        setConfirmPin('');
+        setStep('create');
+        setError('');
+      }, 2000);
     }
   };
 
