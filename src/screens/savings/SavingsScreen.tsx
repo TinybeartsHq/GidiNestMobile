@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,7 +10,6 @@ import {
   Easing,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
@@ -141,44 +140,36 @@ export default function SavingsScreen() {
   const quickActions = useMemo(
     () => [
       {
-        key: 'hospital',
-        icon: 'hospital-building',
-        label: 'Hospital bills',
-        subtitle: 'Save for delivery',
+        key: 'withdraw',
+        icon: 'bank-transfer-out',
+        label: 'Withdraw',
+        subtitle: 'Take money out',
         accent: isDark ? '#FCA5A5' : '#DC2626',
         background: isDark ? 'rgba(248,113,113,0.16)' : 'rgba(220,38,38,0.08)',
       },
       {
-        key: 'baby-supplies',
-        icon: 'baby-carriage',
-        label: 'Baby supplies',
-        subtitle: 'Clothes & items',
-        accent: isDark ? '#FDE68A' : '#D97706',
-        background: isDark ? 'rgba(251,191,36,0.16)' : 'rgba(217,119,6,0.08)',
-      },
-      {
-        key: 'emergency',
-        icon: 'shield-heart',
-        label: 'Emergency fund',
-        subtitle: 'Medical safety',
+        key: 'deposit',
+        icon: 'bank-transfer-in',
+        label: 'Deposit',
+        subtitle: 'Add to wallet',
         accent: isDark ? '#6EE7B7' : '#059669',
         background: isDark ? 'rgba(16,185,129,0.16)' : 'rgba(5,150,105,0.08)',
       },
       {
-        key: 'postpartum',
-        icon: 'heart-pulse',
-        label: 'Postpartum care',
-        subtitle: 'Recovery needs',
-        accent: isDark ? '#C4B5FD' : '#7C3AED',
-        background: isDark ? 'rgba(196,181,253,0.16)' : 'rgba(124,58,237,0.1)',
+        key: 'fund-goal',
+        icon: 'target',
+        label: 'Fund a goal',
+        subtitle: 'Add to savings',
+        accent: isDark ? '#93C5FD' : '#2563EB',
+        background: isDark ? 'rgba(59,130,246,0.16)' : 'rgba(37,99,235,0.08)',
       },
       {
-        key: 'gift-registry',
-        icon: 'gift',
-        label: 'Gift registry',
-        subtitle: 'Share with loved ones',
-        accent: isDark ? '#EC4899' : '#DB2777',
-        background: isDark ? 'rgba(236,72,153,0.16)' : 'rgba(236,72,153,0.08)',
+        key: 'create-goal',
+        icon: 'plus-circle',
+        label: 'Create goal',
+        subtitle: 'New savings plan',
+        accent: isDark ? '#C4B5FD' : '#7C3AED',
+        background: isDark ? 'rgba(196,181,253,0.16)' : 'rgba(124,58,237,0.1)',
       },
     ],
     [isDark]
@@ -188,6 +179,40 @@ export default function SavingsScreen() {
     () => insets.bottom + (Platform.OS === 'ios' ? 120 : 108),
     [insets.bottom]
   );
+
+  const handleQuickAction = (actionKey: string) => {
+    switch (actionKey) {
+      case 'withdraw':
+        // Navigate to PIN auth screen
+        // @ts-ignore
+        navigation.navigate('PINAuth', {
+          amount: 50000, // This would come from user input
+          category: 'withdrawal',
+          onSuccess: () => {
+            console.log('Withdrawal successful!');
+            // Process withdrawal here
+            navigation.goBack();
+          },
+          onCancel: () => {
+            console.log('Withdrawal cancelled');
+            navigation.goBack();
+          },
+        });
+        break;
+      case 'deposit':
+        // @ts-ignore
+        navigation.navigate('Deposit');
+        break;
+      case 'fund-goal':
+        // @ts-ignore
+        navigation.navigate('FundGoal');
+        break;
+      case 'create-goal':
+        // @ts-ignore
+        navigation.navigate('CreateGoal');
+        break;
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
@@ -262,16 +287,15 @@ export default function SavingsScreen() {
             {quickActions.map((action) => (
               <Pressable
                 key={action.key}
-                style={[
+                style={({ pressed }) => [
                   styles.quickActionButton,
-                  { backgroundColor: action.background },
+                  {
+                    backgroundColor: action.background,
+                    transform: [{ scale: pressed ? 0.97 : 1 }],
+                    opacity: pressed ? 0.9 : 1,
+                  },
                 ]}
-                onPress={() => {
-                  if (action.key === 'gift-registry') {
-                    // @ts-ignore nested navigator
-                    navigation.navigate('Community', { screen: 'GiftRegistry' });
-                  }
-                }}
+                onPress={() => handleQuickAction(action.key)}
               >
                 <View
                   style={[
@@ -295,36 +319,6 @@ export default function SavingsScreen() {
                 </View>
               </Pressable>
             ))}
-          </View>
-
-          {/* Gift Registry Promo */}
-          <View
-            style={[
-              styles.registryCard,
-              { backgroundColor: cardBackground, borderColor: separatorColor },
-            ]}
-          >
-            <View style={styles.registryHeaderRow}>
-              <View style={[styles.registryIcon, { backgroundColor: palette.primary + '1F' }]}>
-                <MaterialCommunityIcons name="gift-outline" size={18} color={palette.primary} />
-              </View>
-              <RNText style={[styles.registryTitle, { color: palette.text }]}>Gift registry</RNText>
-            </View>
-            <RNText style={[styles.registryCopy, { color: palette.textSecondary }]}>
-              Create shareable links for everyday support or special occasions.
-            </RNText>
-            <Button
-              mode="contained"
-              onPress={() => {
-                // @ts-ignore nested navigator
-                navigation.navigate('Community', { screen: 'GiftRegistry' });
-              }}
-              buttonColor={palette.primary}
-              textColor="#FFFFFF"
-              style={styles.registryButton}
-            >
-              Open registry
-            </Button>
           </View>
 
           {/* Tabs */}
@@ -635,36 +629,6 @@ const styles = StyleSheet.create({
   quickActionSubtitle: {
     fontFamily: 'NeuzeitGro-Regular',
     fontSize: 12,
-  },
-  registryCard: {
-    borderRadius: theme.borderRadius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.sm,
-  },
-  registryHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-  },
-  registryIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  registryTitle: {
-    fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 15,
-  },
-  registryCopy: {
-    fontFamily: 'NeuzeitGro-Regular',
-    fontSize: 12.5,
-  },
-  registryButton: {
-    alignSelf: 'flex-start',
-    borderRadius: theme.borderRadius.lg,
   },
   tabsContainer: {
     flexDirection: 'row',

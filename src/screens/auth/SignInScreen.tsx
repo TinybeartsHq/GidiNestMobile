@@ -136,8 +136,20 @@ export default function SignInScreen() {
 
     setTimeout(() => {
       setLoading(false);
-      // @ts-ignore - navigation type will be configured later
-      navigation.replace('MainApp');
+      // TODO: Check if user has passcode set (use SecureStore)
+      // For new users, navigate to PasscodeSetup
+      // For returning users, navigate to PasscodeAuth
+
+      // For now, assuming new user flow
+      const hasPasscode = false; // This should come from SecureStore
+
+      if (hasPasscode) {
+        // @ts-ignore - navigation type will be configured later
+        navigation.replace('PasscodeAuth');
+      } else {
+        // @ts-ignore - navigation type will be configured later
+        navigation.replace('PasscodeSetup');
+      }
     }, 600);
   }, [isFormValid, navigation, password, phoneNumber]);
 
