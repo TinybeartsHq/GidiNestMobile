@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, Text as RNText } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Text, Button, useTheme } from 'react-native-paper';
@@ -62,40 +62,76 @@ export default function AuthLandingScreen() {
               ))}
             </View>
 
-            {/* Merged actions into hero card */}
+            {/* Primary Actions */}
             <View style={styles.actionsInline}>
-              <Button
-                mode="contained"
-                onPress={() => navigation.navigate('SignIn' as never)}
-                style={styles.primaryButton}
-                compact
-                contentStyle={styles.primaryContent}
-                buttonColor={palette.primary}
-                textColor="#FFFFFF"
-                labelStyle={styles.primaryLabel}
-              >
-                Log in
-              </Button>
-              <Button
-                mode="contained-tonal"
-                onPress={() => navigation.navigate('SignIn' as never)}
-                style={[styles.secondaryButton, { backgroundColor: palette.card }]}
-                compact
-                contentStyle={styles.secondaryContent}
-                textColor={palette.text}
-                icon="apple"
-                labelStyle={styles.secondaryLabel}
-              >
-                Sign in with Apple
-              </Button>
-              <Button
-                mode="text"
-                onPress={() => navigation.navigate('SignUp' as never)}
-                textColor={paperTheme.colors.primary}
-                labelStyle={styles.linkLabel}
-              >
-                Create a new GidiNest account
-              </Button>
+              <View style={styles.primaryActions}>
+                <Button
+                  mode="contained"
+                  onPress={() => navigation.navigate('SignIn' as never)}
+                  style={styles.primaryButton}
+                  compact
+                  contentStyle={styles.primaryContent}
+                  buttonColor={palette.primary}
+                  textColor="#FFFFFF"
+                  labelStyle={styles.primaryLabel}
+                >
+                  Log in
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={() => navigation.navigate('SignUp' as never)}
+                  style={[styles.outlineButton, { borderColor: palette.primary }]}
+                  compact
+                  contentStyle={styles.primaryContent}
+                  textColor={palette.primary}
+                  labelStyle={styles.primaryLabel}
+                >
+                  Sign up
+                </Button>
+              </View>
+
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={[styles.divider, { backgroundColor: palette.border }]} />
+                <RNText style={[styles.dividerText, { color: palette.textSecondary }]}>
+                  or continue with
+                </RNText>
+                <View style={[styles.divider, { backgroundColor: palette.border }]} />
+              </View>
+
+              {/* OAuth Buttons */}
+              <View style={styles.oauthButtons}>
+                <Button
+                  mode="contained-tonal"
+                  onPress={() => {
+                    // TODO: Implement Apple Sign In
+                    console.log('Apple Sign In');
+                  }}
+                  style={[styles.oauthButton, { backgroundColor: palette.card }]}
+                  compact
+                  contentStyle={styles.oauthContent}
+                  textColor={palette.text}
+                  icon="apple"
+                  labelStyle={styles.oauthLabel}
+                >
+                  Apple
+                </Button>
+                <Button
+                  mode="contained-tonal"
+                  onPress={() => {
+                    // TODO: Implement Google Sign In
+                    console.log('Google Sign In');
+                  }}
+                  style={[styles.oauthButton, { backgroundColor: palette.card }]}
+                  compact
+                  contentStyle={styles.oauthContent}
+                  textColor={palette.text}
+                  icon="google"
+                  labelStyle={styles.oauthLabel}
+                >
+                  Google
+                </Button>
+              </View>
             </View>
           </LinearGradient>
         </View>
@@ -205,16 +241,26 @@ const styles = StyleSheet.create({
   },
   actionsInline: {
     width: '100%',
-    gap: theme.spacing.sm,
+    gap: theme.spacing.lg,
     marginTop: theme.spacing.lg,
   },
+  primaryActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
   primaryButton: {
+    flex: 1,
     borderRadius: theme.borderRadius.xl,
     elevation: 6,
     shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.32,
     shadowRadius: 24,
+  },
+  outlineButton: {
+    flex: 1,
+    borderRadius: theme.borderRadius.xl,
+    borderWidth: 1.5,
   },
   primaryContent: {
     paddingVertical: theme.spacing.sm,
@@ -223,21 +269,33 @@ const styles = StyleSheet.create({
     fontFamily: 'NeuzeitGro-SemiBold',
     fontSize: 15,
   },
-  secondaryButton: {
-    borderRadius: theme.borderRadius.xl,
-    elevation: 3,
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
   },
-  secondaryContent: {
+  divider: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  dividerText: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 12,
+  },
+  oauthButtons: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  oauthButton: {
+    flex: 1,
+    borderRadius: theme.borderRadius.xl,
+    elevation: 2,
+  },
+  oauthContent: {
     paddingVertical: theme.spacing.sm,
   },
-  secondaryLabel: {
+  oauthLabel: {
     fontFamily: 'NeuzeitGro-Medium',
     fontSize: 14,
-  },
-  linkLabel: {
-    fontFamily: 'NeuzeitGro-Medium',
-    fontSize: 14,
-    textDecorationLine: 'underline',
-    letterSpacing: 0.3,
   },
 });
