@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -13,6 +13,10 @@ import { Switch } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
+import {
+  isBiometricAvailable,
+  getBiometricLabel,
+} from '../../utils/biometric';
 
 export default function SecuritySettingsScreen() {
   const { palette, mode } = useThemeMode();
@@ -21,8 +25,12 @@ export default function SecuritySettingsScreen() {
   const navigation = useNavigation();
 
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState('Biometric');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [loginAlerts, setLoginAlerts] = useState(true);
+  const [hasPasscode, setHasPasscode] = useState(true); // TODO: Check from SecureStore
+  const [hasPIN, setHasPIN] = useState(true); // TODO: Check from SecureStore
 
   const cardBackground = isDark ? palette.card : '#FFFFFF';
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
@@ -32,6 +40,64 @@ export default function SecuritySettingsScreen() {
     () => insets.bottom + (Platform.OS === 'ios' ? 120 : 108),
     [insets.bottom]
   );
+
+  useEffect(() => {
+    checkBiometric();
+  }, []);
+
+  const checkBiometric = async () => {
+    const available = await isBiometricAvailable();
+    setBiometricAvailable(available);
+
+    if (available) {
+      const label = await getBiometricLabel();
+      setBiometricLabel(label);
+    }
+  };
+
+  const handleChangePasscode = () => {
+    // To change passcode, user must verify their PIN first
+    // @ts-ignore
+    navigation.navigate('PINAuth', {
+      mode: 'verify',
+      onSuccess: () => {
+        // After PIN verification, navigate to PasscodeSetup
+        // @ts-ignore
+        navigation.navigate('PasscodeSetup', {
+          mode: 'change',
+          onSuccess: () => {
+            // Show 24-hour transaction limit notice
+            navigation.goBack();
+          },
+        });
+      },
+      onCancel: () => {
+        navigation.goBack();
+      },
+    });
+  };
+
+  const handleChangePIN = () => {
+    // To change PIN, user must verify their passcode first
+    // @ts-ignore
+    navigation.navigate('PasscodeAuth', {
+      mode: 'verify',
+      onSuccess: () => {
+        // After passcode verification, navigate to PINSetup
+        // @ts-ignore
+        navigation.navigate('PINSetup', {
+          mode: 'change',
+          onSuccess: () => {
+            // Show 24-hour transaction limit notice
+            navigation.goBack();
+          },
+        });
+      },
+      onCancel: () => {
+        navigation.goBack();
+      },
+    });
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
@@ -55,10 +121,60 @@ export default function SecuritySettingsScreen() {
           contentContainerStyle={[styles.content, { paddingBottom: bottomContentPadding }]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Security Options */}
+          {/* Passcode & PIN */}
           <View style={styles.section}>
             <RNText style={[styles.sectionTitle, { color: palette.text }]}>
-              Authentication
+              Passcode & PIN
+            </RNText>
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: cardBackground,
+                  borderColor: separatorColor,
+                },
+              ]}
+            >
+              {/* Login Passcode */}
+              <Pressable style={styles.menuItem} onPress={handleChangePasscode}>
+                <View style={[styles.menuIcon, { backgroundColor: featureTint }]}>
+                  <MaterialCommunityIcons name="lock" size={20} color={palette.primary} />
+                </View>
+                <View style={styles.menuContent}>
+                  <RNText style={[styles.settingLabel, { color: palette.text }]}>
+                    Login Passcode
+                  </RNText>
+                  <RNText style={[styles.settingDescription, { color: palette.textSecondary }]}>
+                    {hasPasscode ? '6-digit passcode is set' : 'Set up your login passcode'}
+                  </RNText>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
+              </Pressable>
+
+              <View style={[styles.divider, { backgroundColor: separatorColor }]} />
+
+              {/* Withdrawal PIN */}
+              <Pressable style={styles.menuItem} onPress={handleChangePIN}>
+                <View style={[styles.menuIcon, { backgroundColor: featureTint }]}>
+                  <MaterialCommunityIcons name="shield-lock" size={20} color={palette.primary} />
+                </View>
+                <View style={styles.menuContent}>
+                  <RNText style={[styles.settingLabel, { color: palette.text }]}>
+                    Withdrawal PIN
+                  </RNText>
+                  <RNText style={[styles.settingDescription, { color: palette.textSecondary }]}>
+                    {hasPIN ? '4-digit PIN is set' : 'Set up your withdrawal PIN'}
+                  </RNText>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Biometric Authentication */}
+          <View style={styles.section}>
+            <RNText style={[styles.sectionTitle, { color: palette.text }]}>
+              Biometric Authentication
             </RNText>
             <View
               style={[
@@ -70,20 +186,50 @@ export default function SecuritySettingsScreen() {
               ]}
             >
               <View style={styles.settingRow}>
+                <View style={[styles.menuIcon, { backgroundColor: featureTint }]}>
+                  <MaterialCommunityIcons
+                    name={Platform.OS === 'ios' ? 'face-recognition' : 'fingerprint'}
+                    size={20}
+                    color={palette.primary}
+                  />
+                </View>
                 <View style={styles.settingInfo}>
                   <RNText style={[styles.settingLabel, { color: palette.text }]}>
-                    Biometric Login
+                    {biometricLabel}
                   </RNText>
                   <RNText style={[styles.settingDescription, { color: palette.textSecondary }]}>
-                    Use fingerprint or Face ID to login
+                    {biometricAvailable
+                      ? `Use ${biometricLabel} for authentication`
+                      : 'Biometric authentication not available'}
                   </RNText>
                 </View>
-                <Switch value={biometricEnabled} onValueChange={setBiometricEnabled} />
+                <Switch
+                  value={biometricEnabled}
+                  onValueChange={setBiometricEnabled}
+                  disabled={!biometricAvailable}
+                />
               </View>
+            </View>
+          </View>
 
-              <View style={[styles.divider, { backgroundColor: separatorColor }]} />
-
+          {/* Additional Security */}
+          <View style={styles.section}>
+            <RNText style={[styles.sectionTitle, { color: palette.text }]}>
+              Additional Security
+            </RNText>
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: cardBackground,
+                  borderColor: separatorColor,
+                },
+              ]}
+            >
               <View style={styles.settingRow}>
+                <View style={[styles.menuIcon, { backgroundColor: featureTint }]}>
+                  <MaterialCommunityIcons name="shield-check" size={20} color={palette.text} />
+                </View>
                 <View style={styles.settingInfo}>
                   <RNText style={[styles.settingLabel, { color: palette.text }]}>
                     Two-Factor Authentication
@@ -261,5 +407,21 @@ const styles = StyleSheet.create({
   endSessionText: {
     fontFamily: 'NeuzeitGro-SemiBold',
     fontSize: 14,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  menuContent: {
+    flex: 1,
+    gap: theme.spacing.xs / 2,
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -5,9 +5,12 @@ import {
   Text as RNText,
   Vibration,
   Animated,
+  Pressable,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import PasscodeInput from '../../components/PasscodeInput';
@@ -22,10 +25,25 @@ import {
 const PASSCODE_LENGTH = 6;
 const MAX_ATTEMPTS = 5;
 
-export default function PasscodeAuthScreen() {
-  const { palette, mode } = useThemeMode();
-  const isDark = mode === 'dark';
+interface PasscodeAuthScreenProps {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+  mode?: 'verify' | 'login';
+}
+
+export default function PasscodeAuthScreen(props?: PasscodeAuthScreenProps) {
   const navigation = useNavigation();
+  const route = useRoute();
+
+  // Get params from either props or route params
+  const params = (route.params as PasscodeAuthScreenProps) || {};
+  const onSuccess = props?.onSuccess || params.onSuccess;
+  const onCancel = props?.onCancel || params.onCancel;
+  const mode = props?.mode || params.mode || 'login';
+  const { palette, mode: themeMode } = useThemeMode();
+  const isDark = themeMode === 'dark';
+
+  const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
 
   const [passcode, setPasscode] = useState('');
   const [error, setError] = useState('');
@@ -68,10 +86,14 @@ export default function PasscodeAuthScreen() {
     const storedPasscode = '123456'; // This should come from SecureStore
 
     if (passcode === storedPasscode) {
-      // Success! Navigate to main app
+      // Success!
       setTimeout(() => {
-        // @ts-ignore
-        navigation.navigate('MainApp');
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // @ts-ignore
+          navigation.navigate('MainApp');
+        }
       }, 200);
     } else {
       // Wrong passcode
@@ -79,20 +101,27 @@ export default function PasscodeAuthScreen() {
       setAttempts(newAttempts);
 
       if (newAttempts >= MAX_ATTEMPTS) {
-        setError('Too many attempts. Try again later.');
+        setError('Too many attempts. Operation cancelled.');
+        Vibration.vibrate([0, 100, 100, 100]);
+        setTimeout(() => {
+          if (onCancel) {
+            onCancel();
+          } else {
+            navigation.goBack();
+          }
+        }, 2000);
       } else {
         setError(`Incorrect passcode (${newAttempts}/${MAX_ATTEMPTS})`);
+        Vibration.vibrate([0, 50, 50, 50]);
+        shake();
+
+        setTimeout(() => {
+          setPasscode('');
+          if (newAttempts < MAX_ATTEMPTS) {
+            setError('');
+          }
+        }, 1000);
       }
-
-      Vibration.vibrate([0, 50, 50, 50]);
-      shake();
-
-      setTimeout(() => {
-        setPasscode('');
-        if (newAttempts < MAX_ATTEMPTS) {
-          setError('');
-        }
-      }, 1000);
     }
   };
 
@@ -124,12 +153,20 @@ export default function PasscodeAuthScreen() {
   const handleBiometric = async () => {
     if (!biometricAvailable) return;
 
-    const result = await authenticateWithBiometric('Authenticate to access GidiNest');
+    const message = mode === 'verify'
+      ? 'Verify your identity to continue'
+      : 'Authenticate to access GidiNest';
+
+    const result = await authenticateWithBiometric(message);
 
     if (result.success) {
-      // Success! Navigate to main app
-      // @ts-ignore
-      navigation.navigate('MainApp');
+      // Success!
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        // @ts-ignore
+        navigation.navigate('MainApp');
+      }
     }
     // If failed, user can continue with passcode
   };
@@ -144,19 +181,40 @@ export default function PasscodeAuthScreen() {
     setPasscode(passcode.slice(0, -1));
   };
 
+  const headerTitle = mode === 'verify' ? 'Verify Identity' : 'Welcome Back';
+  const headerSubtitle = biometricAvailable
+    ? `Use ${biometricLabel} or enter your passcode`
+    : 'Enter your passcode to continue';
+
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.content}>
+          {/* Close button for verify mode */}
+          {mode === 'verify' && (
+            <View style={styles.closeButtonContainer}>
+              <Pressable
+                style={[styles.closeButton, { backgroundColor: featureTint }]}
+                onPress={() => {
+                  if (onCancel) {
+                    onCancel();
+                  } else {
+                    navigation.goBack();
+                  }
+                }}
+              >
+                <MaterialCommunityIcons name="close" size={20} color={palette.text} />
+              </Pressable>
+            </View>
+          )}
+
           {/* Header */}
           <View style={styles.header}>
             <RNText style={[styles.title, { color: palette.text }]}>
-              Welcome Back
+              {headerTitle}
             </RNText>
             <RNText style={[styles.subtitle, { color: palette.textSecondary }]}>
-              {biometricAvailable
-                ? `Use ${biometricLabel} or enter your passcode`
-                : 'Enter your passcode to continue'}
+              {headerSubtitle}
             </RNText>
           </View>
 
@@ -201,12 +259,24 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: theme.spacing.xl,
-    justifyContent: 'space-between',
-    paddingVertical: theme.spacing.xl * 2,
+    paddingTop: Platform.OS === 'ios' ? theme.spacing.lg : theme.spacing.md,
+    paddingBottom: theme.spacing.xl * 2,
+  },
+  closeButtonContainer: {
+    alignItems: 'flex-end',
+    marginBottom: theme.spacing.xs,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
     gap: theme.spacing.sm,
+    marginTop: theme.spacing.xl,
   },
   title: {
     fontFamily: 'NeuzeitGro-Bold',
@@ -221,6 +291,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     alignItems: 'center',
     gap: theme.spacing.lg,
+    marginTop: theme.spacing.xl * 2,
   },
   errorText: {
     fontFamily: 'NeuzeitGro-SemiBold',
@@ -229,5 +300,6 @@ const styles = StyleSheet.create({
   },
   numPadContainer: {
     alignItems: 'center',
+    marginTop: 'auto',
   },
 });

@@ -5,9 +5,10 @@ import {
   Text as RNText,
   Vibration,
   Animated,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
@@ -20,6 +21,11 @@ export default function PINSetupScreen() {
   const { palette, mode } = useThemeMode();
   const isDark = mode === 'dark';
   const navigation = useNavigation();
+  const route = useRoute();
+
+  // @ts-ignore
+  const params = route.params || {};
+  const isChangeMode = params.mode === 'change';
 
   const [step, setStep] = useState<'create' | 'confirm'>('create');
   const [pin, setPin] = useState('');
@@ -28,10 +34,12 @@ export default function PINSetupScreen() {
   const [shakeAnimation] = useState(new Animated.Value(0));
 
   const currentPin = step === 'create' ? pin : confirmPin;
-  const title = step === 'create' ? 'Create Withdrawal PIN' : 'Confirm PIN';
+  const title = step === 'create'
+    ? (isChangeMode ? 'Change Withdrawal PIN' : 'Create Withdrawal PIN')
+    : 'Confirm PIN';
   const subtitle =
     step === 'create'
-      ? 'Enter a 4-digit PIN for withdrawals'
+      ? (isChangeMode ? 'Enter your new 4-digit PIN' : 'Enter a 4-digit PIN for withdrawals')
       : 'Re-enter your PIN to confirm';
 
   useEffect(() => {
@@ -89,9 +97,33 @@ export default function PINSetupScreen() {
     // TODO: Save PIN securely (use SecureStore)
     console.log('PIN saved:', pin);
 
-    // Navigate to main app
-    // @ts-ignore
-    navigation.navigate('MainApp');
+    if (isChangeMode) {
+      // Show transaction limit notice for security
+      Alert.alert(
+        'PIN Changed Successfully',
+        'For your security, your transaction limit has been temporarily reduced to ₦10,000 for the next 24 hours.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              if (params.onSuccess) {
+                params.onSuccess();
+              } else {
+                navigation.goBack();
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      // Initial setup - navigate to main app
+      if (params.onSuccess) {
+        params.onSuccess();
+      } else {
+        // @ts-ignore
+        navigation.navigate('MainApp');
+      }
+    }
   };
 
   const handleNumberPress = (num: string) => {

@@ -19,7 +19,6 @@ export default function PaymentMethodsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
-  const cardBackground = isDark ? palette.card : '#FFFFFF';
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
   const separatorColor = isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(148, 163, 184, 0.2)';
 
@@ -32,20 +31,38 @@ export default function PaymentMethodsScreen() {
     () => [
       {
         id: '1',
-        type: 'card',
-        name: 'Visa •••• 4242',
-        icon: 'credit-card',
-        isDefault: true,
+        type: 'bank-transfer',
+        name: 'Bank Transfer',
+        description: 'Transfer from any bank account',
+        icon: 'bank-transfer',
+        available: true,
+        color: isDark ? '#6EE7B7' : '#059669',
+        background: isDark ? 'rgba(16,185,129,0.15)' : 'rgba(5,150,105,0.1)',
       },
       {
         id: '2',
-        type: 'bank',
-        name: 'GTBank •••• 7890',
-        icon: 'bank',
-        isDefault: false,
+        type: 'card',
+        name: 'Debit Card',
+        description: 'Pay with your debit card',
+        icon: 'credit-card',
+        available: false,
+        comingSoon: true,
+        color: isDark ? '#93C5FD' : '#2563EB',
+        background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(37,99,235,0.1)',
+      },
+      {
+        id: '3',
+        type: 'ussd',
+        name: 'USSD',
+        description: 'Pay via USSD code',
+        icon: 'phone-dial',
+        available: false,
+        comingSoon: true,
+        color: isDark ? '#C4B5FD' : '#7C3AED',
+        background: isDark ? 'rgba(196,181,253,0.15)' : 'rgba(124,58,237,0.1)',
       },
     ],
-    []
+    [isDark]
   );
 
   return (
@@ -70,62 +87,100 @@ export default function PaymentMethodsScreen() {
           contentContainerStyle={[styles.content, { paddingBottom: bottomContentPadding }]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Info Card */}
+          <View
+            style={[
+              styles.infoCard,
+              {
+                backgroundColor: isDark ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)',
+                borderColor: isDark ? 'rgba(147,197,253,0.2)' : 'rgba(59,130,246,0.15)',
+              },
+            ]}
+          >
+            <View style={[styles.infoIcon, { backgroundColor: palette.primary + '1F' }]}>
+              <MaterialCommunityIcons name="information" size={20} color={palette.primary} />
+            </View>
+            <RNText style={[styles.infoText, { color: palette.text }]}>
+              Manage your payment methods for deposits and transactions
+            </RNText>
+          </View>
+
           {/* Payment Methods List */}
           <View style={styles.section}>
             <RNText style={[styles.sectionTitle, { color: palette.text }]}>
-              Saved Payment Methods
+              Available Methods
             </RNText>
             <View style={styles.methodsList}>
               {paymentMethods.map((method) => (
-                <View
+                <Pressable
                   key={method.id}
-                  style={[
+                  style={({ pressed }) => [
                     styles.methodCard,
                     {
-                      backgroundColor: cardBackground,
-                      borderColor: separatorColor,
+                      backgroundColor: method.background,
+                      ...(Platform.OS === 'ios' && { borderColor: separatorColor }),
+                      opacity: !method.available ? 0.6 : pressed ? 0.9 : 1,
+                      transform: [{ scale: pressed && method.available ? 0.98 : 1 }],
                     },
                   ]}
+                  disabled={!method.available}
+                  onPress={() => {
+                    if (method.type === 'bank-transfer') {
+                      // @ts-ignore
+                      navigation.navigate('BankTransferDetails');
+                    }
+                  }}
                 >
-                  <View style={[styles.methodIcon, { backgroundColor: palette.primary + '1F' }]}>
+                  <View
+                    style={[
+                      styles.methodIcon,
+                      { backgroundColor: method.color + '1F' },
+                    ]}
+                  >
                     <MaterialCommunityIcons
                       name={method.icon as any}
-                      size={24}
-                      color={palette.primary}
+                      size={28}
+                      color={method.color}
                     />
                   </View>
                   <View style={styles.methodInfo}>
-                    <RNText style={[styles.methodName, { color: palette.text }]}>
-                      {method.name}
+                    <View style={styles.methodHeader}>
+                      <RNText style={[styles.methodName, { color: palette.text }]}>
+                        {method.name}
+                      </RNText>
+                      {method.comingSoon && (
+                        <View
+                          style={[
+                            styles.comingSoonBadge,
+                            { backgroundColor: isDark ? 'rgba(251,191,36,0.15)' : 'rgba(251,191,36,0.1)' },
+                          ]}
+                        >
+                          <RNText
+                            style={[
+                              styles.comingSoonText,
+                              { color: isDark ? '#FDE68A' : '#D97706' },
+                            ]}
+                          >
+                            Coming Soon
+                          </RNText>
+                        </View>
+                      )}
+                    </View>
+                    <RNText style={[styles.methodDescription, { color: palette.textSecondary }]}>
+                      {method.description}
                     </RNText>
-                    {method.isDefault && (
-                      <View style={[styles.defaultBadge, { backgroundColor: palette.primary + '1F' }]}>
-                        <RNText style={[styles.defaultText, { color: palette.primary }]}>
-                          Default
-                        </RNText>
-                      </View>
-                    )}
                   </View>
-                  <Pressable>
+                  {method.available && (
                     <MaterialCommunityIcons
-                      name="dots-vertical"
+                      name="chevron-right"
                       size={20}
                       color={palette.textSecondary}
                     />
-                  </Pressable>
-                </View>
+                  )}
+                </Pressable>
               ))}
             </View>
           </View>
-
-          {/* Add Payment Method */}
-          <Pressable
-            style={[styles.addButton, { backgroundColor: palette.primary }]}
-            onPress={() => {}}
-          >
-            <MaterialCommunityIcons name="plus-circle" size={20} color="#FFFFFF" />
-            <RNText style={styles.addButtonText}>Add Payment Method</RNText>
-          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -171,6 +226,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     gap: theme.spacing.xl,
   },
+  infoCard: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  infoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoText: {
+    flex: 1,
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+  },
   section: {
     gap: theme.spacing.md,
   },
@@ -185,14 +260,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: theme.borderRadius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: theme.spacing.md,
+    borderWidth: Platform.OS === 'ios' ? StyleSheet.hairlineWidth : 0,
+    padding: theme.spacing.lg,
     gap: theme.spacing.md,
+    ...(Platform.OS === 'ios' && {
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 1,
+    }),
   },
   methodIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -200,35 +281,26 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: theme.spacing.xs / 2,
   },
-  methodName: {
-    fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 15,
-  },
-  defaultBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
-  },
-  defaultText: {
-    fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 11,
-  },
-  addButton: {
+  methodHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: theme.spacing.sm,
-    paddingVertical: theme.spacing.md + 2,
-    borderRadius: theme.borderRadius.xl,
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
   },
-  addButtonText: {
-    fontFamily: 'NeuzeitGro-Bold',
+  methodName: {
+    fontFamily: 'NeuzeitGro-SemiBold',
     fontSize: 16,
-    color: '#FFFFFF',
+  },
+  methodDescription: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 13,
+  },
+  comingSoonBadge: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs / 2,
+    borderRadius: theme.borderRadius.md,
+  },
+  comingSoonText: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 11,
   },
 });
