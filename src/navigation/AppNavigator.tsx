@@ -22,6 +22,8 @@ import WithdrawScreen from '../screens/savings/WithdrawScreen';
 import WithdrawalStatusScreen from '../screens/savings/WithdrawalStatusScreen';
 import FundGoalScreen from '../screens/savings/FundGoalScreen';
 import CreateGoalScreen from '../screens/savings/CreateGoalScreen';
+import GoalDetailsScreen from '../screens/savings/GoalDetailsScreen';
+import WithdrawFromGoalScreen from '../screens/savings/WithdrawFromGoalScreen';
 import BankTransferDetailsScreen from '../screens/savings/BankTransferDetailsScreen';
 import ProfileEditScreen from '../screens/profile/ProfileEditScreen';
 import VerificationStatusScreen from '../screens/kyc/VerificationStatusScreen';
@@ -100,6 +102,8 @@ export default function AppNavigator() {
         <Stack.Screen name="WithdrawalStatus" component={WithdrawalStatusScreen} />
         <Stack.Screen name="FundGoal" component={FundGoalScreen} />
         <Stack.Screen name="CreateGoal" component={CreateGoalScreen} />
+        <Stack.Screen name="GoalDetails" component={GoalDetailsScreen} />
+        <Stack.Screen name="WithdrawFromGoal" component={WithdrawFromGoalScreen} />
         <Stack.Screen name="BankTransferDetails" component={BankTransferDetailsScreen} />
         <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
         <Stack.Screen name="VerificationStatus" component={VerificationStatusScreen} />

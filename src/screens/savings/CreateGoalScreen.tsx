@@ -9,12 +9,15 @@ import {
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
+import { useSavings } from '../../hooks/useSavings';
 
 const formatCurrency = (value: number) => {
   return `₦${value.toLocaleString('en-NG', {
@@ -39,13 +42,13 @@ const goalCategories = [
   {
     id: 'emergency',
     name: 'Emergency',
-    icon: 'shield-heart',
+    icon: 'shield-check',
     color: '#059669',
   },
   {
     id: 'recovery',
     name: 'Recovery',
-    icon: 'heart-pulse',
+    icon: 'heart-plus',
     color: '#7C3AED',
   },
   {
@@ -67,6 +70,7 @@ export default function CreateGoalScreen() {
   const isDark = mode === 'dark';
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { createGoal, createLoading, error } = useSavings();
 
   const [goalName, setGoalName] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
@@ -85,20 +89,28 @@ export default function CreateGoalScreen() {
     setTargetAmount(numeric);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!canCreate) return;
 
     Keyboard.dismiss();
 
-    // Create goal
-    console.log('Creating goal:', {
-      name: goalName,
-      target: numericAmount,
-      category: selectedCategory,
-    });
+    try {
+      await createGoal({
+        name: goalName.trim(),
+        target_amount: numericAmount,
+        category: selectedCategory || undefined,
+      }).unwrap();
 
-    // Navigate back
-    navigation.goBack();
+      Alert.alert('Success', 'Savings goal created successfully!', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } catch (err: any) {
+      const errorMessage = err || error || 'Failed to create goal. Please try again.';
+      Alert.alert('Error', errorMessage);
+    }
   };
 
   return (
@@ -263,27 +275,33 @@ export default function CreateGoalScreen() {
               style={({ pressed }) => [
                 styles.createButton,
                 {
-                  backgroundColor: canCreate ? palette.primary : featureTint,
-                  opacity: pressed && canCreate ? 0.9 : 1,
-                  transform: [{ scale: pressed && canCreate ? 0.98 : 1 }],
+                  backgroundColor: canCreate && !createLoading ? palette.primary : featureTint,
+                  opacity: pressed && canCreate && !createLoading ? 0.9 : 1,
+                  transform: [{ scale: pressed && canCreate && !createLoading ? 0.98 : 1 }],
                 },
               ]}
               onPress={handleCreate}
-              disabled={!canCreate}
+              disabled={!canCreate || createLoading}
             >
-              <MaterialCommunityIcons
-                name="plus-circle"
-                size={20}
-                color={canCreate ? '#FFFFFF' : palette.textSecondary}
-              />
-              <RNText
-                style={[
-                  styles.createButtonText,
-                  { color: canCreate ? '#FFFFFF' : palette.textSecondary },
-                ]}
-              >
-                Create Goal
-              </RNText>
+              {createLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons
+                    name="plus-circle"
+                    size={20}
+                    color={canCreate ? '#FFFFFF' : palette.textSecondary}
+                  />
+                  <RNText
+                    style={[
+                      styles.createButtonText,
+                      { color: canCreate ? '#FFFFFF' : palette.textSecondary },
+                    ]}
+                  >
+                    Create Goal
+                  </RNText>
+                </>
+              )}
             </Pressable>
           </ScrollView>
         </SafeAreaView>

@@ -8,6 +8,7 @@ import {
   Platform,
   Animated,
   Easing,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -15,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import { useWallet } from '../../hooks/useWallet';
+import { useSavings } from '../../hooks/useSavings';
 
 const formatCurrency = (value: number) => {
   return `₦${value.toLocaleString('en-NG', {
@@ -30,22 +32,30 @@ export default function SavingsScreen() {
   const navigation = useNavigation();
   const {
     wallet,
-    goals: apiGoals,
     transactions: apiTransactions,
     getWalletBalance,
-    getTransactionHistory
+    getTransactionHistory,
   } = useWallet();
+  const { goals: apiGoals, getAllGoals, goalsLoading } = useSavings();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
   const [selectedTab, setSelectedTab] = useState<'goals' | 'transactions'>('goals');
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch wallet balance and transaction history on mount
+  // Fetch wallet balance, savings goals, and transaction history on mount
   useEffect(() => {
     getWalletBalance();
+    getAllGoals();
     getTransactionHistory();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([getWalletBalance(), getAllGoals(), getTransactionHistory()]);
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     Animated.parallel([
@@ -73,60 +83,54 @@ export default function SavingsScreen() {
   const walletBalance = wallet?.balance ?? 0;
 
   // Calculate total from real goals - ensure we parse amounts as numbers
-  const totalSavingsGoals = apiGoals && apiGoals.length > 0
-    ? apiGoals.reduce((sum, goal) => {
-        const amount = typeof goal.current_amount === 'string'
-          ? parseFloat(goal.current_amount)
-          : goal.current_amount;
-        return sum + (isNaN(amount) ? 0 : amount);
-      }, 0)
-    : 0;
+  const totalSavingsGoals =
+    apiGoals && apiGoals.length > 0
+      ? apiGoals.reduce((sum, goal) => {
+          const amount =
+            typeof goal.current_amount === 'string'
+              ? parseFloat(goal.current_amount)
+              : goal.current_amount;
+          return sum + (isNaN(amount) ? 0 : amount);
+        }, 0)
+      : 0;
 
-  const savingsGoals = useMemo(
+  const goalIcons = useMemo(
     () => [
-      {
-        id: 'goal-1',
-        name: 'Hospital Delivery Bills',
-        icon: 'hospital-building',
-        target: 500000,
-        saved: 250000,
-        accent: isDark ? '#FCA5A5' : '#DC2626',
-        deadline: 'Due Date',
-        category: 'Medical',
-      },
-      {
-        id: 'goal-2',
-        name: 'Baby Clothes & Supplies',
-        icon: 'baby-carriage',
-        target: 300000,
-        saved: 180000,
-        accent: isDark ? '#FDE68A' : '#D97706',
-        deadline: 'Before Birth',
-        category: 'Essentials',
-      },
-      {
-        id: 'goal-3',
-        name: 'Emergency Medical Fund',
-        icon: 'shield-heart',
-        target: 200000,
-        saved: 125000,
-        accent: isDark ? '#6EE7B7' : '#059669',
-        deadline: 'Anytime',
-        category: 'Safety Net',
-      },
-      {
-        id: 'goal-4',
-        name: 'Postpartum Support',
-        icon: 'heart-pulse',
-        target: 250000,
-        saved: 95000,
-        accent: isDark ? '#C4B5FD' : '#7C3AED',
-        deadline: 'After Birth',
-        category: 'Recovery',
-      },
+      { icon: 'hospital-building', color: isDark ? '#FCA5A5' : '#DC2626' },
+      { icon: 'baby-carriage', color: isDark ? '#FDE68A' : '#D97706' },
+      { icon: 'shield-check', color: isDark ? '#6EE7B7' : '#059669' },
+      { icon: 'heart-plus', color: isDark ? '#C4B5FD' : '#7C3AED' },
+      { icon: 'school', color: isDark ? '#93C5FD' : '#2563EB' },
+      { icon: 'star', color: isDark ? '#F9A8D4' : '#EC4899' },
     ],
     [isDark]
   );
+
+  const getGoalIcon = (index: number) => {
+    return goalIcons[index % goalIcons.length];
+  };
+
+  const savingsGoals = useMemo(() => {
+    if (!apiGoals || apiGoals.length === 0) {
+      return [];
+    }
+
+    return apiGoals.map((goal, index) => {
+      const iconData = getGoalIcon(index);
+      const progress = (goal.current_amount / goal.target_amount) * 100;
+      return {
+        id: goal.id,
+        name: goal.name,
+        icon: iconData.icon,
+        target: goal.target_amount,
+        saved: goal.current_amount,
+        accent: iconData.color,
+        progress,
+        category: goal.category || 'General',
+        deadline: goal.deadline || '',
+      };
+    });
+  }, [apiGoals, isDark]);
 
   // Use real transaction history from wallet
   const transactions = useMemo(() => {
@@ -239,6 +243,14 @@ export default function SavingsScreen() {
         <ScrollView
           contentContainerStyle={[styles.content, { paddingBottom: bottomContentPadding }]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={palette.primary}
+              colors={[palette.primary]}
+            />
+          }
         >
           {/* Wallet Balance Card */}
           <Animated.View
@@ -369,20 +381,44 @@ export default function SavingsScreen() {
           {/* Goals Tab */}
           {selectedTab === 'goals' && (
             <View style={styles.goalRow}>
-              {savingsGoals.map((goal) => {
-                const progress = (goal.saved / goal.target) * 100;
-                return (
+              {!savingsGoals || savingsGoals.length === 0 ? (
+                <View style={[styles.emptyState, { backgroundColor: featureTint }]}>
+                  <MaterialCommunityIcons name="target" size={40} color={palette.textSecondary} />
+                  <RNText style={[styles.emptyStateText, { color: palette.text }]}>
+                    No savings goals yet
+                  </RNText>
+                  <RNText style={[styles.emptyStateSubtext, { color: palette.textSecondary }]}>
+                    Create a goal to start saving for your baby
+                  </RNText>
                   <Pressable
-                    key={goal.id}
-                    style={[
-                      styles.goalRowCard,
-                      {
-                        backgroundColor: cardBackground,
-                        borderColor: separatorColor,
-                      },
-                    ]}
-                    onPress={() => {}}
+                    style={[styles.emptyStateButton, { backgroundColor: palette.primary }]}
+                    onPress={() => {
+                      // @ts-ignore
+                      navigation.navigate('CreateGoal');
+                    }}
                   >
+                    <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
+                    <RNText style={styles.emptyStateButtonText}>Create Your First Goal</RNText>
+                  </Pressable>
+                </View>
+              ) : (
+                savingsGoals.map((goal) => {
+                  const progress = (goal.saved / goal.target) * 100;
+                  return (
+                    <Pressable
+                      key={goal.id}
+                      style={[
+                        styles.goalRowCard,
+                        {
+                          backgroundColor: cardBackground,
+                          borderColor: separatorColor,
+                        },
+                      ]}
+                      onPress={() => {
+                        // @ts-ignore
+                        navigation.navigate('GoalDetails', { goalId: goal.id });
+                      }}
+                    >
                     <View style={styles.goalTileHeader}>
                       <View style={styles.goalTileLeading}>
                         <View
@@ -421,8 +457,9 @@ export default function SavingsScreen() {
                       </RNText>
                     </View>
                   </Pressable>
-                );
-              })}
+                  );
+                })
+              )}
             </View>
           )}
 
@@ -766,6 +803,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  emptyStateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.xl,
+    marginTop: theme.spacing.sm,
+  },
+  emptyStateButtonText: {
+    fontFamily: 'NeuzeitGro-Bold',
+    fontSize: 14,
+    color: '#FFFFFF',
   },
   transactionCard: {
     flexDirection: 'row',

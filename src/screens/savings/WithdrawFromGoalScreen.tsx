@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,8 +17,13 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import { useSavings } from '../../hooks/useSavings';
-import { useWallet } from '../../hooks/useWallet';
 import { usePin } from '../../hooks/useAuthV2';
+
+type RouteParams = {
+  WithdrawFromGoal: {
+    goalId: string;
+  };
+};
 
 const formatCurrency = (value: number) => {
   return `₦${value.toLocaleString('en-NG', {
@@ -27,24 +32,17 @@ const formatCurrency = (value: number) => {
   })}`;
 };
 
-type RouteParams = {
-  FundGoal: {
-    goalId?: string;
-  };
-};
-
-export default function FundGoalScreen() {
+export default function WithdrawFromGoalScreen() {
   const { palette, mode } = useThemeMode();
   const isDark = mode === 'dark';
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const route = useRoute<RouteProp<RouteParams, 'FundGoal'>>();
+  const route = useRoute<RouteProp<RouteParams, 'WithdrawFromGoal'>>();
 
-  const { goals, getAllGoals, fundGoal, fundLoading } = useSavings();
-  const { wallet, getWalletBalance } = useWallet();
+  const { goalId } = route.params;
+  const { selectedGoal, getGoalById, withdrawFromGoal, withdrawLoading } = useSavings();
   const { hasPin } = usePin();
 
-  const [selectedGoal, setSelectedGoal] = useState<string | null>(route.params?.goalId || null);
   const [amount, setAmount] = useState('');
   const [pin, setPin] = useState('');
   const [showPinInput, setShowPinInput] = useState(false);
@@ -54,51 +52,15 @@ export default function FundGoalScreen() {
   const separatorColor = isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(148, 163, 184, 0.2)';
   const inputBackground = isDark ? 'rgba(15, 23, 42, 0.72)' : '#FFFFFF';
 
-  const walletBalance = wallet?.balance ?? 0;
+  const availableBalance = selectedGoal?.current_amount || 0;
 
   useEffect(() => {
-    getAllGoals();
-    getWalletBalance();
-  }, []);
-
-  const goalCategories = useMemo(
-    () => [
-      { icon: 'hospital-building', color: isDark ? '#FCA5A5' : '#DC2626' },
-      { icon: 'baby-carriage', color: isDark ? '#FDE68A' : '#D97706' },
-      { icon: 'shield-check', color: isDark ? '#6EE7B7' : '#059669' },
-      { icon: 'heart-plus', color: isDark ? '#C4B5FD' : '#7C3AED' },
-      { icon: 'school', color: isDark ? '#93C5FD' : '#2563EB' },
-      { icon: 'star', color: isDark ? '#F9A8D4' : '#EC4899' },
-    ],
-    [isDark]
-  );
-
-  const getGoalIcon = (index: number) => {
-    const cat = goalCategories[index % goalCategories.length];
-    return cat;
-  };
-
-  const savingsGoals = useMemo(
-    () =>
-      (goals || []).map((goal, index) => {
-        const iconData = getGoalIcon(index);
-        return {
-          id: goal.id,
-          name: goal.name,
-          icon: iconData.icon,
-          target: goal.target_amount,
-          saved: goal.current_amount,
-          accent: iconData.color,
-          background: isDark
-            ? `${iconData.color}26`
-            : `${iconData.color}1A`,
-        };
-      }),
-    [goals, isDark]
-  );
+    getGoalById(goalId);
+  }, [goalId]);
 
   const numericAmount = parseInt(amount.replace(/[^0-9]/g, '') || '0', 10);
-  const canProceed = selectedGoal && numericAmount > 0 && numericAmount <= walletBalance && !fundLoading;
+  const canProceed =
+    numericAmount > 0 && numericAmount <= availableBalance && !withdrawLoading;
 
   const handleAmountChange = (text: string) => {
     const numeric = text.replace(/[^0-9]/g, '');
@@ -111,7 +73,7 @@ export default function FundGoalScreen() {
     if (!hasPin) {
       Alert.alert(
         'PIN Required',
-        'You need to set up a transaction PIN before funding goals.',
+        'You need to set up a transaction PIN before withdrawing from goals.',
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -129,18 +91,18 @@ export default function FundGoalScreen() {
     setShowPinInput(true);
   };
 
-  const handleFund = async () => {
-    if (!canProceed || !selectedGoal || pin.length !== 4) return;
+  const handleWithdraw = async () => {
+    if (!canProceed || pin.length !== 4) return;
 
     Keyboard.dismiss();
 
     try {
-      await fundGoal(selectedGoal, {
+      await withdrawFromGoal(goalId, {
         amount: numericAmount,
         transaction_pin: pin,
       }).unwrap();
 
-      Alert.alert('Success', 'Goal funded successfully!', [
+      Alert.alert('Success', 'Withdrawal successful! Funds added to your wallet.', [
         {
           text: 'OK',
           onPress: () => {
@@ -152,10 +114,25 @@ export default function FundGoalScreen() {
         },
       ]);
     } catch (err: any) {
-      Alert.alert('Error', err || 'Failed to fund goal. Please try again.');
+      Alert.alert('Error', err || 'Failed to withdraw. Please try again.');
       setPin('');
     }
   };
+
+  if (!selectedGoal) {
+    return (
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={palette.primary} />
+            <RNText style={[styles.loadingText, { color: palette.textSecondary }]}>
+              Loading goal details...
+            </RNText>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
@@ -170,7 +147,7 @@ export default function FundGoalScreen() {
           </Pressable>
           <View style={styles.headerLeading}>
             <RNText style={[styles.headerTitle, { color: palette.text }]}>
-              Fund a Goal
+              Withdraw from Goal
             </RNText>
             <View style={[styles.headerAccent, { backgroundColor: palette.primary }]} />
           </View>
@@ -185,110 +162,32 @@ export default function FundGoalScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Wallet Balance */}
+          {/* Goal Info */}
           <View
             style={[
-              styles.balanceCard,
+              styles.goalCard,
               {
-                backgroundColor: isDark ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)',
-                borderColor: isDark ? 'rgba(147,197,253,0.2)' : 'rgba(59,130,246,0.15)',
+                backgroundColor: cardBackground,
               },
             ]}
           >
-            <View style={[styles.balanceIcon, { backgroundColor: palette.primary + '1F' }]}>
-              <MaterialCommunityIcons name="wallet" size={20} color={palette.primary} />
+            <View style={[styles.goalIcon, { backgroundColor: palette.primary + '1F' }]}>
+              <MaterialCommunityIcons name="target" size={24} color={palette.primary} />
             </View>
-            <View style={styles.balanceContent}>
-              <RNText style={[styles.balanceLabel, { color: palette.textSecondary }]}>
-                Available Balance
+            <View style={styles.goalInfo}>
+              <RNText style={[styles.goalName, { color: palette.text }]}>
+                {selectedGoal.name}
               </RNText>
-              <RNText style={[styles.balanceAmount, { color: palette.text }]}>
-                {formatCurrency(walletBalance)}
+              <RNText style={[styles.goalBalance, { color: palette.textSecondary }]}>
+                Available: {formatCurrency(availableBalance)}
               </RNText>
-            </View>
-          </View>
-
-          {/* Select Goal */}
-          <View style={styles.section}>
-            <RNText style={[styles.sectionTitle, { color: palette.text }]}>
-              Select Goal
-            </RNText>
-            <View style={styles.goalsContainer}>
-              {savingsGoals.length === 0 ? (
-                <View
-                  style={[
-                    styles.emptyState,
-                    {
-                      backgroundColor: isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)',
-                      borderColor: separatorColor,
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons name="target" size={40} color={palette.textSecondary} />
-                  <RNText style={[styles.emptyStateText, { color: palette.text }]}>
-                    No savings goals yet
-                  </RNText>
-                  <RNText style={[styles.emptyStateSubtext, { color: palette.textSecondary }]}>
-                    Create a goal first to start funding
-                  </RNText>
-                </View>
-              ) : (
-                savingsGoals.map((goal) => {
-                const progress = (goal.saved / goal.target) * 100;
-                const isSelected = selectedGoal === goal.id;
-
-                return (
-                  <Pressable
-                    key={goal.id}
-                    style={({ pressed }) => [
-                      styles.goalCard,
-                      {
-                        backgroundColor: cardBackground,
-                        borderColor: isSelected ? palette.primary : separatorColor,
-                        borderWidth: isSelected ? 2 : StyleSheet.hairlineWidth,
-                        opacity: pressed ? 0.9 : 1,
-                        transform: [{ scale: pressed ? 0.98 : 1 }],
-                      },
-                    ]}
-                    onPress={() => setSelectedGoal(goal.id)}
-                  >
-                    <View
-                      style={[
-                        styles.goalIcon,
-                        { backgroundColor: goal.background },
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name={goal.icon as any}
-                        size={24}
-                        color={goal.accent}
-                      />
-                    </View>
-                    <View style={styles.goalInfo}>
-                      <RNText style={[styles.goalName, { color: palette.text }]}>
-                        {goal.name}
-                      </RNText>
-                      <RNText style={[styles.goalProgress, { color: palette.textSecondary }]}>
-                        {formatCurrency(goal.saved)} of {formatCurrency(goal.target)} • {Math.round(progress)}%
-                      </RNText>
-                    </View>
-                    {isSelected && (
-                      <MaterialCommunityIcons
-                        name="check-circle"
-                        size={24}
-                        color={palette.primary}
-                      />
-                    )}
-                  </Pressable>
-                );
-              }))}
             </View>
           </View>
 
           {/* Enter Amount */}
           <View style={styles.section}>
             <RNText style={[styles.sectionTitle, { color: palette.text }]}>
-              Enter Amount
+              Withdrawal Amount
             </RNText>
             <View
               style={[
@@ -310,11 +209,31 @@ export default function FundGoalScreen() {
                 maxLength={10}
               />
             </View>
-            {numericAmount > walletBalance && (
+            {numericAmount > availableBalance && (
               <RNText style={[styles.errorText, { color: '#EF4444' }]}>
-                Insufficient balance
+                Insufficient balance in goal
               </RNText>
             )}
+          </View>
+
+          {/* Info Card */}
+          <View
+            style={[
+              styles.infoCard,
+              {
+                backgroundColor: isDark ? 'rgba(251,191,36,0.1)' : 'rgba(217,119,6,0.05)',
+                borderColor: isDark ? 'rgba(254,215,170,0.2)' : 'rgba(217,119,6,0.15)',
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="information"
+              size={20}
+              color={isDark ? '#FDE68A' : '#D97706'}
+            />
+            <RNText style={[styles.infoText, { color: palette.text }]}>
+              Withdrawn funds will be added to your main wallet balance.
+            </RNText>
           </View>
 
           {/* PIN Input (conditional) */}
@@ -347,38 +266,38 @@ export default function FundGoalScreen() {
             </View>
           )}
 
-          {/* Fund Button */}
+          {/* Withdraw Button */}
           <Pressable
             style={({ pressed }) => [
-              styles.fundButton,
+              styles.withdrawButton,
               {
                 backgroundColor:
-                  canProceed && (!showPinInput || pin.length === 4) && !fundLoading
+                  canProceed && (!showPinInput || pin.length === 4) && !withdrawLoading
                     ? palette.primary
                     : featureTint,
                 opacity:
-                  pressed && canProceed && (!showPinInput || pin.length === 4) && !fundLoading
+                  pressed && canProceed && (!showPinInput || pin.length === 4) && !withdrawLoading
                     ? 0.9
                     : 1,
                 transform: [
                   {
                     scale:
-                      pressed && canProceed && (!showPinInput || pin.length === 4) && !fundLoading
+                      pressed && canProceed && (!showPinInput || pin.length === 4) && !withdrawLoading
                         ? 0.98
                         : 1,
                   },
                 ],
               },
             ]}
-            onPress={showPinInput ? handleFund : handleContinue}
-            disabled={!canProceed || (showPinInput && pin.length !== 4) || fundLoading}
+            onPress={showPinInput ? handleWithdraw : handleContinue}
+            disabled={!canProceed || (showPinInput && pin.length !== 4) || withdrawLoading}
           >
-            {fundLoading ? (
+            {withdrawLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <RNText
                 style={[
-                  styles.fundButtonText,
+                  styles.withdrawButtonText,
                   {
                     color:
                       canProceed && (!showPinInput || pin.length === 4)
@@ -387,7 +306,7 @@ export default function FundGoalScreen() {
                   },
                 ]}
               >
-                {showPinInput ? 'Fund Goal' : 'Continue'}
+                {showPinInput ? 'Confirm Withdrawal' : 'Continue'}
               </RNText>
             )}
           </Pressable>
@@ -403,6 +322,16 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.md,
+  },
+  loadingText: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 14,
   },
   header: {
     flexDirection: 'row',
@@ -436,57 +365,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     gap: theme.spacing.xl,
   },
-  balanceCard: {
-    flexDirection: 'row',
-    gap: theme.spacing.md,
-    padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  balanceIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  balanceContent: {
-    flex: 1,
-    gap: theme.spacing.xs / 2,
-  },
-  balanceLabel: {
-    fontFamily: 'NeuzeitGro-Regular',
-    fontSize: 13,
-  },
-  balanceAmount: {
-    fontFamily: 'NeuzeitGro-Bold',
-    fontSize: 24,
-  },
-  section: {
-    gap: theme.spacing.md,
-  },
-  sectionTitle: {
-    fontFamily: 'NeuzeitGro-Bold',
-    fontSize: 18,
-  },
-  goalsContainer: {
-    gap: theme.spacing.sm,
-  },
   goalCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.md,
-    padding: theme.spacing.md,
+    padding: theme.spacing.lg,
     borderRadius: theme.borderRadius.xl,
     shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
   goalIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -495,12 +388,19 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs / 2,
   },
   goalName: {
-    fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 15,
+    fontFamily: 'NeuzeitGro-Bold',
+    fontSize: 16,
   },
-  goalProgress: {
+  goalBalance: {
     fontFamily: 'NeuzeitGro-Regular',
-    fontSize: 12,
+    fontSize: 13,
+  },
+  section: {
+    gap: theme.spacing.md,
+  },
+  sectionTitle: {
+    fontFamily: 'NeuzeitGro-Bold',
+    fontSize: 18,
   },
   amountInputCard: {
     flexDirection: 'row',
@@ -525,18 +425,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: theme.spacing.xs / 2,
   },
-  fundButton: {
+  infoCard: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
     borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
   },
-  fundButtonText: {
-    fontFamily: 'NeuzeitGro-Bold',
-    fontSize: 16,
+  infoText: {
+    flex: 1,
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 13,
+    lineHeight: 18,
   },
   pinInputCard: {
     flexDirection: 'row',
@@ -553,24 +454,17 @@ const styles = StyleSheet.create({
     padding: 0,
     letterSpacing: 8,
   },
-  emptyState: {
+  withdrawButton: {
+    borderRadius: theme.borderRadius.xl,
+    padding: theme.spacing.lg,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: theme.spacing.xl * 2,
-    paddingHorizontal: theme.spacing.lg,
-    borderRadius: theme.borderRadius.lg,
-    gap: theme.spacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
-  emptyStateText: {
+  withdrawButtonText: {
     fontFamily: 'NeuzeitGro-Bold',
     fontSize: 16,
-    textAlign: 'center',
-  },
-  emptyStateSubtext: {
-    fontFamily: 'NeuzeitGro-Regular',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });
