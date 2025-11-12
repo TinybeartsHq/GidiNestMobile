@@ -85,10 +85,30 @@ export default function ProfileScreen() {
 
   const accountSettings = useMemo(
     () => [
-      { id: '1', icon: 'account-edit', label: 'Edit Profile', action: () => navigation.navigate('EditProfile') },
-      { id: '2', icon: 'lock-reset', label: 'Change Password', action: () => navigation.navigate('ChangePassword') },
-      { id: '3', icon: 'shield-check', label: 'Security Settings', action: () => navigation.navigate('SecuritySettings') },
-      { id: '4', icon: 'bank', label: 'Payment Methods', action: () => navigation.navigate('PaymentMethods') },
+      { id: '1', icon: 'account-edit', label: 'Edit Profile', action: () => {
+        // @ts-ignore - Navigate to root navigator
+        const rootNav = navigation.getParent()?.getParent();
+        if (rootNav) {
+          rootNav.navigate('ProfileEdit');
+        }
+      }},
+      { id: '2', icon: 'shield-check-outline', label: 'Verification Status', action: () => {
+        // @ts-ignore - Navigate to root navigator
+        const rootNav = navigation.getParent()?.getParent();
+        if (rootNav) {
+          rootNav.navigate('VerificationStatus');
+        }
+      }},
+      { id: '3', icon: 'trophy', label: 'Account Tier', action: () => {
+        // @ts-ignore - Navigate to root navigator
+        const rootNav = navigation.getParent()?.getParent();
+        if (rootNav) {
+          rootNav.navigate('TierInfo');
+        }
+      }},
+      { id: '4', icon: 'lock-reset', label: 'Change Password', action: () => navigation.navigate('ChangePassword') },
+      { id: '5', icon: 'shield-check', label: 'Security Settings', action: () => navigation.navigate('SecuritySettings') },
+      { id: '6', icon: 'bank', label: 'Payment Methods', action: () => navigation.navigate('PaymentMethods') },
     ],
     [navigation]
   );

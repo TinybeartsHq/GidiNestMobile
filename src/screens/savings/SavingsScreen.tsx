@@ -28,16 +28,23 @@ export default function SavingsScreen() {
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { wallet, goals: apiGoals, getWalletBalance } = useWallet();
+  const {
+    wallet,
+    goals: apiGoals,
+    transactions: apiTransactions,
+    getWalletBalance,
+    getTransactionHistory
+  } = useWallet();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
   const [selectedTab, setSelectedTab] = useState<'goals' | 'transactions'>('goals');
 
-  // Fetch wallet balance on mount
+  // Fetch wallet balance and transaction history on mount
   useEffect(() => {
     getWalletBalance();
+    getTransactionHistory();
   }, []);
 
   useEffect(() => {
@@ -121,38 +128,29 @@ export default function SavingsScreen() {
     [isDark]
   );
 
-  const transactions = useMemo(
-    () => [
-      {
-        id: 'tx-1',
-        type: 'contribution',
-        description: 'Added to Hospital Bills Fund',
-        amount: 50000,
-        date: '2 hours ago',
-        icon: 'arrow-down-circle',
-        accent: isDark ? '#6EE7B7' : '#059669',
-      },
-      {
-        id: 'tx-2',
-        type: 'withdrawal',
-        description: 'Bought baby essentials',
-        amount: -15000,
-        date: 'Yesterday',
-        icon: 'arrow-up-circle',
-        accent: isDark ? '#FCA5A5' : '#DC2626',
-      },
-      {
-        id: 'tx-3',
-        type: 'contribution',
-        description: 'Auto-save to Postpartum Fund',
-        amount: 25000,
-        date: '3 days ago',
-        icon: 'clock-check',
-        accent: isDark ? '#93C5FD' : '#2563EB',
-      },
-    ],
-    [isDark]
-  );
+  // Use real transaction history from wallet
+  const transactions = useMemo(() => {
+    if (!apiTransactions || apiTransactions.length === 0) {
+      return [];
+    }
+
+    // Map API transactions to UI format
+    return apiTransactions.map((tx) => {
+      const isCredit = tx.transaction_type === 'credit';
+      return {
+        id: tx.id,
+        type: isCredit ? 'contribution' : 'withdrawal',
+        description: tx.description || (isCredit ? 'Deposit' : 'Withdrawal'),
+        amount: isCredit ? tx.amount : -tx.amount,
+        date: tx.created_at,
+        icon: isCredit ? 'arrow-down-circle' : 'arrow-up-circle',
+        accent: isCredit
+          ? (isDark ? '#6EE7B7' : '#059669')
+          : (isDark ? '#FCA5A5' : '#DC2626'),
+        rawData: tx, // Keep original transaction data
+      };
+    });
+  }, [apiTransactions, isDark]);
 
   const quickActions = useMemo(
     () => [
@@ -431,39 +429,75 @@ export default function SavingsScreen() {
           {/* Transactions Tab */}
           {selectedTab === 'transactions' && (
             <View style={styles.transactionsContainer}>
-              {transactions.map((tx) => (
-                <Pressable
-                  key={tx.id}
-                  style={[
-                    styles.transactionCard,
-                    {
-                      backgroundColor: cardBackground,
-                      borderColor: separatorColor,
-                    },
-                  ]}
-                  onPress={() => {}}
-                >
-                  <View style={[styles.transactionIcon, { backgroundColor: tx.accent + '1F' }]}>
-                    <MaterialCommunityIcons
-                      name={tx.icon as any}
-                      size={20}
-                      color={isDark ? '#F8FAFC' : tx.accent}
-                    />
-                  </View>
-                  <View style={styles.transactionInfo}>
-                    <RNText style={[styles.transactionDescription, { color: palette.text }]}>
-                      {tx.description}
-                    </RNText>
-                    <RNText style={[styles.transactionDate, { color: palette.textSecondary }]}>
-                      {tx.date}
-                    </RNText>
-                  </View>
-                  <RNText style={[styles.transactionAmount, { color: tx.accent }]}>
-                    {tx.amount > 0 ? '+' : ''}
-                    {formatCurrency(Math.abs(tx.amount))}
+              {transactions.length === 0 ? (
+                <View style={[styles.emptyState, { backgroundColor: featureTint }]}>
+                  <MaterialCommunityIcons name="history" size={40} color={palette.textSecondary} />
+                  <RNText style={[styles.emptyStateText, { color: palette.text }]}>
+                    No transactions yet
                   </RNText>
-                </Pressable>
-              ))}
+                  <RNText style={[styles.emptyStateSubtext, { color: palette.textSecondary }]}>
+                    Your transaction history will appear here once you start saving
+                  </RNText>
+                </View>
+              ) : (
+                transactions.map((tx) => {
+                  // Format date from ISO string
+                  const formatDate = (dateString: string) => {
+                    try {
+                      const date = new Date(dateString);
+                      const now = new Date();
+                      const diffMs = now.getTime() - date.getTime();
+                      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                      const diffDays = Math.floor(diffHours / 24);
+
+                      if (diffHours < 1) return 'Just now';
+                      if (diffHours < 24) return `${diffHours}h ago`;
+                      if (diffDays === 1) return 'Yesterday';
+                      if (diffDays < 7) return `${diffDays}d ago`;
+                      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    } catch {
+                      return '';
+                    }
+                  };
+
+                  return (
+                    <Pressable
+                      key={tx.id}
+                      style={[
+                        styles.transactionCard,
+                        {
+                          backgroundColor: cardBackground,
+                          borderColor: separatorColor,
+                        },
+                      ]}
+                      onPress={() => {
+                        // @ts-ignore - Navigate to transaction details
+                        navigation.navigate('TransactionDetails', { transaction: tx.rawData });
+                      }}
+                    >
+                      <View style={[styles.transactionIcon, { backgroundColor: tx.accent + '1F' }]}>
+                        <MaterialCommunityIcons
+                          name={tx.icon as any}
+                          size={20}
+                          color={isDark ? '#F8FAFC' : tx.accent}
+                        />
+                      </View>
+                      <View style={styles.transactionInfo}>
+                        <RNText style={[styles.transactionDescription, { color: palette.text }]}>
+                          {tx.description}
+                        </RNText>
+                        <RNText style={[styles.transactionDate, { color: palette.textSecondary }]}>
+                          {formatDate(tx.date)}
+                        </RNText>
+                      </View>
+                      <RNText style={[styles.transactionAmount, { color: tx.accent }]}>
+                        {tx.amount > 0 ? '+' : ''}
+                        {formatCurrency(Math.abs(tx.amount))}
+                      </RNText>
+                    </Pressable>
+                  );
+                })
+              )}
             </View>
           )}
 
@@ -712,6 +746,26 @@ const styles = StyleSheet.create({
   },
   transactionsContainer: {
     gap: theme.spacing.sm,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl * 2,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.lg,
+  },
+  emptyStateText: {
+    fontFamily: 'NeuzeitGro-Bold',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  emptyStateSubtext: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   transactionCard: {
     flexDirection: 'row',

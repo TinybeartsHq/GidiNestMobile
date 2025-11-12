@@ -55,12 +55,15 @@ export default function SelectVerificationMethodScreen() {
   );
 
   const handleSelectMethod = (type: string) => {
-    if (type === 'bvn') {
-      // @ts-ignore
-      navigation.navigate('BVNVerification');
-    } else if (type === 'nin') {
-      // @ts-ignore
-      navigation.navigate('NINVerification');
+    // Navigate to root navigator for KYC screens
+    // @ts-ignore
+    const rootNav = navigation.getParent()?.getParent();
+    if (rootNav) {
+      if (type === 'bvn') {
+        rootNav.navigate('BVNVerification');
+      } else if (type === 'nin') {
+        rootNav.navigate('NINVerification');
+      }
     }
   };
 

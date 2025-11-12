@@ -23,6 +23,11 @@ import WithdrawalStatusScreen from '../screens/savings/WithdrawalStatusScreen';
 import FundGoalScreen from '../screens/savings/FundGoalScreen';
 import CreateGoalScreen from '../screens/savings/CreateGoalScreen';
 import BankTransferDetailsScreen from '../screens/savings/BankTransferDetailsScreen';
+import ProfileEditScreen from '../screens/profile/ProfileEditScreen';
+import VerificationStatusScreen from '../screens/kyc/VerificationStatusScreen';
+import BVNVerificationScreen from '../screens/kyc/BVNVerificationScreen';
+import NINVerificationScreen from '../screens/kyc/NINVerificationScreen';
+import TierInfoScreen from '../screens/kyc/TierInfoScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -96,6 +101,11 @@ export default function AppNavigator() {
         <Stack.Screen name="FundGoal" component={FundGoalScreen} />
         <Stack.Screen name="CreateGoal" component={CreateGoalScreen} />
         <Stack.Screen name="BankTransferDetails" component={BankTransferDetailsScreen} />
+        <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
+        <Stack.Screen name="VerificationStatus" component={VerificationStatusScreen} />
+        <Stack.Screen name="BVNVerification" component={BVNVerificationScreen} />
+        <Stack.Screen name="NINVerification" component={NINVerificationScreen} />
+        <Stack.Screen name="TierInfo" component={TierInfoScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -8,8 +8,6 @@ import SecuritySettingsScreen from '../screens/profile/SecuritySettingsScreen';
 import PaymentMethodsScreen from '../screens/profile/PaymentMethodsScreen';
 import NotificationsScreen from '../screens/profile/NotificationsScreen';
 import SelectVerificationMethodScreen from '../screens/profile/SelectVerificationMethodScreen';
-import BVNVerificationScreen from '../screens/profile/BVNVerificationScreen';
-import NINVerificationScreen from '../screens/profile/NINVerificationScreen';
 
 export type ProfileStackParamList = {
   ProfileHome: undefined;
@@ -20,8 +18,6 @@ export type ProfileStackParamList = {
   PaymentMethods: undefined;
   Notifications: undefined;
   SelectVerificationMethod: undefined;
-  BVNVerification: undefined;
-  NINVerification: undefined;
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -37,8 +33,6 @@ export default function ProfileNavigator() {
       <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="SelectVerificationMethod" component={SelectVerificationMethodScreen} />
-      <Stack.Screen name="BVNVerification" component={BVNVerificationScreen} />
-      <Stack.Screen name="NINVerification" component={NINVerificationScreen} />
     </Stack.Navigator>
   );
 }

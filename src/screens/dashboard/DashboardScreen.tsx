@@ -37,11 +37,20 @@ export default function DashboardScreen() {
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
   const { user: userV2, isRestricted } = useAuthV2();
-  const { wallet, goals, walletNotFound, loading: walletLoading, getWalletBalance } = useWallet();
+  const {
+    wallet,
+    goals,
+    transactions,
+    walletNotFound,
+    loading: walletLoading,
+    getWalletBalance,
+    getTransactionHistory
+  } = useWallet();
 
-  // Fetch wallet balance on mount
+  // Fetch wallet balance and transaction history on mount
   useEffect(() => {
     getWalletBalance();
+    getTransactionHistory();
   }, []);
 
   const sectionAnimations = useRef(
@@ -213,38 +222,16 @@ export default function DashboardScreen() {
     []
   );
 
-  const transactionHistory = useMemo(
-    () => [
-      {
-        id: 'tx-1',
-        title: 'Hospital bills fund',
-        description: 'Saved for delivery',
-        timestamp: '2 hours ago',
-        amount: 50000,
-        positive: true,
-        icon: 'hospital-building',
-      },
-      {
-        id: 'tx-2',
-        title: 'Baby supplies',
-        description: 'Added to baby fund',
-        timestamp: 'Yesterday',
-        amount: 25000,
-        positive: true,
-        icon: 'baby-carriage',
-      },
-      {
-        id: 'tx-3',
-        title: 'Emergency fund',
-        description: 'Safety net contribution',
-        timestamp: '3 days ago',
-        amount: 15000,
-        positive: true,
-        icon: 'shield-heart',
-      },
-    ],
-    []
-  );
+  // Use real transaction history from wallet, limit to 3 most recent
+  const transactionHistory = useMemo(() => {
+    if (!transactions || transactions.length === 0) {
+      // Fallback to empty array if no transactions
+      return [];
+    }
+
+    // Take only the first 3 transactions for dashboard preview
+    return transactions.slice(0, 3);
+  }, [transactions]);
 
   const bottomContentPadding = useMemo(
     () => insets.bottom + (Platform.OS === 'ios' ? 120 : 108),
@@ -262,11 +249,18 @@ export default function DashboardScreen() {
                 {welcomeName ? `Hey ${welcomeName} 👋` : 'Welcome back 👋'}
               </RNText>
               {userV2 && (
-                <View style={[styles.tierBadge, { backgroundColor: palette.primary + '20' }]}>
+                <Pressable
+                  style={[styles.tierBadge, { backgroundColor: palette.primary + '20' }]}
+                  onPress={() => {
+                    // @ts-ignore - Navigate to TierInfo screen
+                    navigation.navigate('TierInfo');
+                  }}
+                >
                   <RNText style={[styles.tierBadgeText, { color: palette.primary }]}>
                     {accountTier}
                   </RNText>
-                </View>
+                  <MaterialCommunityIcons name="chevron-right" size={12} color={palette.primary} />
+                </Pressable>
               )}
             </View>
             <RNText style={[styles.topBadge, { color: palette.text }]}>
@@ -518,53 +512,88 @@ export default function DashboardScreen() {
             </View>
 
             <View style={styles.transactionStack}>
-              {transactionHistory.map((tx) => (
-                <Pressable
-                  key={tx.id}
-                  style={({ pressed }) => [
-                    styles.transactionCard,
-                    {
-                      backgroundColor: cardBackground,
-                      borderColor: separatorColor,
-                      transform: [{ scale: pressed ? 0.97 : 1 }],
-                      opacity: pressed ? 0.9 : 1,
-                    },
-                  ]}
-                  onPress={() => {
-                    // @ts-ignore
-                    navigation.navigate('TransactionDetails', { transaction: tx });
-                  }}
-                >
-                  <View style={[styles.txIcon, { backgroundColor: featureTint }]}>
-                    <MaterialCommunityIcons
-                      name={tx.icon as any}
-                      size={16}
-                      color={tx.positive ? (isDark ? '#6EE7B7' : '#059669') : (isDark ? '#FCA5A5' : '#DC2626')}
-                    />
-                  </View>
-                  <View style={styles.txContent}>
-                    <RNText style={[styles.txTitle, { color: palette.text }]}>
-                      {tx.title}
-                    </RNText>
-                    <RNText style={[styles.txDescription, { color: palette.textSecondary }]}>
-                      {tx.description} • {tx.timestamp}
-                    </RNText>
-                  </View>
-                  <RNText
-                    style={[
-                      styles.txAmount,
-                      {
-                        color: tx.positive
-                          ? (isDark ? '#6EE7B7' : '#059669')
-                          : (isDark ? '#FCA5A5' : '#DC2626'),
-                      },
-                    ]}
-                  >
-                    {tx.positive ? '+' : ''}
-                    {formatCurrency(Math.abs(tx.amount), analytics.currency)}
+              {transactionHistory.length === 0 ? (
+                <View style={[styles.emptyState, { backgroundColor: featureTint }]}>
+                  <MaterialCommunityIcons name="history" size={32} color={palette.textSecondary} />
+                  <RNText style={[styles.emptyStateText, { color: palette.textSecondary }]}>
+                    No transactions yet
                   </RNText>
-                </Pressable>
-              ))}
+                  <RNText style={[styles.emptyStateSubtext, { color: palette.textSecondary }]}>
+                    Your transaction history will appear here
+                  </RNText>
+                </View>
+              ) : (
+                transactionHistory.map((tx) => {
+                  const isCredit = tx.transaction_type === 'credit';
+                  const txIcon = isCredit ? 'arrow-down-circle' : 'arrow-up-circle';
+                  const txColor = isCredit
+                    ? (isDark ? '#6EE7B7' : '#059669')
+                    : (isDark ? '#FCA5A5' : '#DC2626');
+
+                  // Format date from API (created_at is ISO string)
+                  const formatDate = (dateString: string) => {
+                    try {
+                      const date = new Date(dateString);
+                      const now = new Date();
+                      const diffMs = now.getTime() - date.getTime();
+                      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                      const diffDays = Math.floor(diffHours / 24);
+
+                      if (diffHours < 1) return 'Just now';
+                      if (diffHours < 24) return `${diffHours}h ago`;
+                      if (diffDays === 1) return 'Yesterday';
+                      if (diffDays < 7) return `${diffDays}d ago`;
+                      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    } catch {
+                      return '';
+                    }
+                  };
+
+                  return (
+                    <Pressable
+                      key={tx.id}
+                      style={({ pressed }) => [
+                        styles.transactionCard,
+                        {
+                          backgroundColor: cardBackground,
+                          borderColor: separatorColor,
+                          transform: [{ scale: pressed ? 0.97 : 1 }],
+                          opacity: pressed ? 0.9 : 1,
+                        },
+                      ]}
+                      onPress={() => {
+                        // @ts-ignore
+                        navigation.navigate('TransactionDetails', { transaction: tx });
+                      }}
+                    >
+                      <View style={[styles.txIcon, { backgroundColor: featureTint }]}>
+                        <MaterialCommunityIcons
+                          name={txIcon as any}
+                          size={16}
+                          color={txColor}
+                        />
+                      </View>
+                      <View style={styles.txContent}>
+                        <RNText style={[styles.txTitle, { color: palette.text }]}>
+                          {tx.description || (isCredit ? 'Credit' : 'Debit')}
+                        </RNText>
+                        <RNText style={[styles.txDescription, { color: palette.textSecondary }]}>
+                          {tx.sender_name || (isCredit ? 'Deposit' : 'Withdrawal')} • {formatDate(tx.created_at)}
+                        </RNText>
+                      </View>
+                      <RNText
+                        style={[
+                          styles.txAmount,
+                          { color: txColor },
+                        ]}
+                      >
+                        {isCredit ? '+' : '-'}
+                        {formatCurrency(Math.abs(tx.amount), wallet?.currency || 'NGN')}
+                      </RNText>
+                    </Pressable>
+                  );
+                })
+              )}
             </View>
           </Animated.View>
 
@@ -617,6 +646,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   tierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
     paddingHorizontal: theme.spacing.xs + 2,
     paddingVertical: theme.spacing.xs / 2,
     borderRadius: theme.borderRadius.sm,
@@ -864,6 +896,24 @@ const styles = StyleSheet.create({
   },
   transactionStack: {
     gap: theme.spacing.xs,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl * 2,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    gap: theme.spacing.sm,
+  },
+  emptyStateText: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  emptyStateSubtext: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 13,
+    textAlign: 'center',
   },
   transactionCard: {
     width: '100%',
