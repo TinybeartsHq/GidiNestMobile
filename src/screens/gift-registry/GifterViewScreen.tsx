@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,20 +8,29 @@ import {
   Platform,
   TextInput,
   Alert,
+  ActivityIndicator,
+  Clipboard,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import type { CommunityStackParamList } from '../../navigation/CommunityNavigator';
+import { usePaymentLinks } from '../../hooks/usePaymentLinks';
 
 const formatCurrency = (value: number) => {
   return `₦${value.toLocaleString('en-NG', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })}`;
+};
+
+type RouteParams = {
+  GifterView: {
+    token: string;
+  };
 };
 
 type GifterViewNavigationProp = NativeStackNavigationProp<CommunityStackParamList, 'GifterView'>;
@@ -31,37 +40,53 @@ export default function GifterViewScreen() {
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<GifterViewNavigationProp>();
+  const route = useRoute<RouteProp<RouteParams, 'GifterView'>>();
+
+  const { token } = route.params || { token: 'demo' };
+  const { selectedLink, loading, getLinkByToken } = usePaymentLinks();
 
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const [yourName, setYourName] = useState('');
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
+  useEffect(() => {
+    if (token && token !== 'demo') {
+      getLinkByToken(token);
+    }
+  }, [token]);
+
   const cardBackground = isDark ? palette.card : '#FFFFFF';
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
   const separatorColor = isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(148, 163, 184, 0.2)';
 
-  // Mock registry data
+  // Registry data from API
   const registry = useMemo(
     () => ({
-      title: 'Baby Shower - December 2024',
-      parentNames: 'Chinedu & Amara',
-      message: 'Help us prepare for our bundle of joy!',
-      totalReceived: 125000,
-      contributors: 12,
-      expiresAt: 'Dec 25, 2024',
+      title: selectedLink?.event_name || selectedLink?.description || 'Gift Registry',
+      parentNames: 'GidiNest User',
+      message: selectedLink?.custom_message || 'Help support my baby journey!',
+      totalReceived: selectedLink?.total_raised || 0,
+      contributors: selectedLink?.contribution_count || 0,
+      expiresAt: selectedLink?.expires_at
+        ? new Date(selectedLink.expires_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })
+        : 'No expiry',
     }),
-    []
+    [selectedLink]
   );
 
-  // Mock account details
+  // Account details from API
   const accountDetails = useMemo(
     () => ({
-      bankName: 'Guaranty Trust Bank (GTBank)',
-      accountNumber: '0123456789',
-      accountName: 'CHINEDU OKONKWO',
+      bankName: selectedLink?.bank_name || 'Loading...',
+      accountNumber: selectedLink?.account_number || 'Loading...',
+      accountName: selectedLink?.account_name || 'Loading...',
     }),
-    []
+    [selectedLink]
   );
 
   const suggestedAmounts = [5000, 10000, 20000, 50000];
@@ -73,14 +98,28 @@ export default function GifterViewScreen() {
 
   const canSendGift = yourName.trim().length > 0 && parseFloat(amount) > 0 && paymentConfirmed;
 
+  const handleCopyToClipboard = (text: string, label: string) => {
+    Clipboard.setString(text);
+    Alert.alert('Copied!', `${label} copied to clipboard`);
+  };
+
   const handleSendGift = () => {
     if (!canSendGift) return;
 
-    // In a real app, this would call an API to record the gift contribution
+    // Generate payment reference
+    const reference = `PL-${token}-${Date.now()}`;
+
     Alert.alert(
-      'Gift Sent!',
-      `Thank you ${yourName}! Your gift of ${formatCurrency(parseFloat(amount))} has been recorded. The parents will be notified.`,
+      'Payment Reference',
+      `Thank you ${yourName}! Please use this reference when making your transfer:\n\n${reference}\n\nAfter transferring ${formatCurrency(parseFloat(amount))}, your contribution will be automatically recorded via our webhook system.`,
       [
+        {
+          text: 'Copy Reference',
+          onPress: () => {
+            handleCopyToClipboard(reference, 'Payment reference');
+            setTimeout(() => navigation.goBack(), 1000);
+          },
+        },
         {
           text: 'Done',
           onPress: () => navigation.goBack(),
@@ -88,6 +127,21 @@ export default function GifterViewScreen() {
       ]
     );
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#EC4899" />
+            <RNText style={[styles.loadingText, { color: palette.textSecondary }]}>
+              Loading gift registry...
+            </RNText>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
@@ -267,7 +321,9 @@ export default function GifterViewScreen() {
                   <RNText style={[styles.accountValue, { color: palette.text }]}>
                     {accountDetails.bankName}
                   </RNText>
-                  <Pressable onPress={() => {}}>
+                  <Pressable
+                    onPress={() => handleCopyToClipboard(accountDetails.bankName, 'Bank name')}
+                  >
                     <MaterialCommunityIcons name="content-copy" size={18} color={palette.primary} />
                   </Pressable>
                 </View>
@@ -283,7 +339,11 @@ export default function GifterViewScreen() {
                   <RNText style={[styles.accountValue, { color: palette.text }]}>
                     {accountDetails.accountNumber}
                   </RNText>
-                  <Pressable onPress={() => {}}>
+                  <Pressable
+                    onPress={() =>
+                      handleCopyToClipboard(accountDetails.accountNumber, 'Account number')
+                    }
+                  >
                     <MaterialCommunityIcons name="content-copy" size={18} color={palette.primary} />
                   </Pressable>
                 </View>
@@ -602,5 +662,16 @@ const styles = StyleSheet.create({
   sendButtonText: {
     fontFamily: 'NeuzeitGro-Bold',
     fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl * 3,
+    gap: theme.spacing.md,
+  },
+  loadingText: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 14,
   },
 });

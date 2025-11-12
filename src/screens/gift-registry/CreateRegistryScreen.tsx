@@ -8,6 +8,8 @@ import {
   Platform,
   TextInput,
   Alert,
+  Share,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -16,6 +18,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import type { CommunityStackParamList } from '../../navigation/CommunityNavigator';
+import { usePaymentLinks } from '../../hooks/usePaymentLinks';
+import type { PaymentLink } from '../../services/paymentLinksService';
 
 type CreateRegistryNavigationProp = NativeStackNavigationProp<CommunityStackParamList, 'CreateRegistry'>;
 
@@ -25,9 +29,12 @@ export default function CreateRegistryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<CreateRegistryNavigationProp>();
 
+  const { createEventLink, createWalletLink, createLoading } = usePaymentLinks();
+
   const [selectedType, setSelectedType] = useState<'shower' | 'dedication' | 'everyday' | null>(null);
   const [title, setTitle] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
+  const [customMessage, setCustomMessage] = useState('');
 
   const cardBackground = isDark ? palette.card : '#FFFFFF';
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
@@ -65,22 +72,82 @@ export default function CreateRegistryScreen() {
     [insets.bottom]
   );
 
-  const canGenerate = selectedType && title.trim().length > 0;
+  const canGenerate = selectedType && title.trim().length > 0 && !createLoading;
 
-  const handleGenerateLink = () => {
+  const handleShareLink = async (link: PaymentLink) => {
+    try {
+      const message = `
+${link.event_name || link.description || 'Support My Baby Journey'}
+
+${link.custom_message || ''}
+
+View and contribute: ${link.shareable_url || `https://app.gidinest.com/pay/${link.token}`}
+
+Pay to:
+Account: ${link.account_number}
+Bank: ${link.bank_name}
+Reference: PL-${link.token}-{timestamp}
+      `.trim();
+
+      await Share.share({
+        message,
+        title: link.event_name || 'Gift Registry',
+      });
+
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error sharing link:', error);
+      navigation.goBack();
+    }
+  };
+
+  const handleGenerateLink = async () => {
     if (!canGenerate) return;
 
-    // In a real app, this would call an API to create the registry
-    Alert.alert(
-      'Registry Created!',
-      'Your gift registry link has been generated successfully. Share it with family and friends!',
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack(),
-        },
-      ]
-    );
+    try {
+      let result;
+
+      if (selectedType === 'shower' || selectedType === 'dedication') {
+        // Create event link for baby shower or dedication
+        result = await createEventLink({
+          event_name: title,
+          event_date: expiryDate || undefined,
+          description: customMessage || undefined,
+          custom_message: customMessage || undefined,
+          show_contributors: 'public',
+          link_to_goal: false,
+        }).unwrap();
+      } else {
+        // Create wallet link for everyday support
+        result = await createWalletLink({
+          description: title,
+          custom_message: customMessage || undefined,
+          show_contributors: 'public',
+        }).unwrap();
+      }
+
+      // Show success with share option
+      Alert.alert(
+        'Registry Created! 🎉',
+        'Your gift registry link has been generated. Would you like to share it now?',
+        [
+          {
+            text: 'Share Now',
+            onPress: () => handleShareLink(result),
+          },
+          {
+            text: 'Later',
+            style: 'cancel',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert(
+        'Error',
+        error?.message || 'Failed to create registry. Please try again.'
+      );
+    }
   };
 
   return (
@@ -210,6 +277,28 @@ export default function CreateRegistryScreen() {
                   </View>
                 )}
 
+                <View style={styles.inputGroup}>
+                  <RNText style={[styles.inputLabel, { color: palette.text }]}>
+                    Custom message (optional)
+                  </RNText>
+                  <TextInput
+                    style={[
+                      styles.textArea,
+                      {
+                        backgroundColor: featureTint,
+                        borderColor: separatorColor,
+                        color: palette.text,
+                      },
+                    ]}
+                    placeholder="Add a personal message for your contributors..."
+                    placeholderTextColor={palette.textSecondary}
+                    multiline
+                    numberOfLines={3}
+                    value={customMessage}
+                    onChangeText={setCustomMessage}
+                  />
+                </View>
+
                 {selectedType === 'everyday' && (
                   <View
                     style={[
@@ -283,19 +372,25 @@ export default function CreateRegistryScreen() {
               disabled={!canGenerate}
               onPress={handleGenerateLink}
             >
-              <MaterialCommunityIcons
-                name="link-variant"
-                size={20}
-                color={canGenerate ? '#FFFFFF' : palette.textSecondary}
-              />
-              <RNText
-                style={[
-                  styles.generateButtonText,
-                  { color: canGenerate ? '#FFFFFF' : palette.textSecondary },
-                ]}
-              >
-                Generate Link
-              </RNText>
+              {createLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons
+                    name="link-variant"
+                    size={20}
+                    color={canGenerate ? '#FFFFFF' : palette.textSecondary}
+                  />
+                  <RNText
+                    style={[
+                      styles.generateButtonText,
+                      { color: canGenerate ? '#FFFFFF' : palette.textSecondary },
+                    ]}
+                  >
+                    Generate Link
+                  </RNText>
+                </>
+              )}
             </Pressable>
           </View>
         )}
@@ -399,6 +494,16 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm + 2,
     fontFamily: 'NeuzeitGro-Regular',
     fontSize: 15,
+  },
+  textArea: {
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm + 2,
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 15,
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
   inputHint: {
     fontFamily: 'NeuzeitGro-Regular',

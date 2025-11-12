@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,6 +6,8 @@ import {
   Pressable,
   Text as RNText,
   Platform,
+  ActivityIndicator,
+  Share,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,6 +16,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
 import type { CommunityStackParamList } from '../../navigation/CommunityNavigator';
+import { usePaymentLinks } from '../../hooks/usePaymentLinks';
+import type { PaymentLink } from '../../services/paymentLinksService';
 
 const formatCurrency = (value: number) => {
   return `₦${value.toLocaleString('en-NG', {
@@ -30,9 +34,15 @@ export default function GiftRegistryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<GiftRegistryNavigationProp>();
 
+  const { links, linksLoading, getMyLinks } = usePaymentLinks();
+
   const cardBackground = isDark ? palette.card : '#FFFFFF';
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
   const separatorColor = isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(148, 163, 184, 0.2)';
+
+  useEffect(() => {
+    getMyLinks();
+  }, []);
 
   const features = useMemo(
     () => [
@@ -60,29 +70,35 @@ export default function GiftRegistryScreen() {
     []
   );
 
-  const myRegistries = useMemo(
-    () => [
-      {
-        id: 'reg-1',
-        title: 'Baby Shower - December 2024',
-        type: 'special',
-        amount: 125000,
-        contributors: 12,
-        expiresAt: 'Dec 25, 2024',
-        status: 'active',
-      },
-      {
-        id: 'reg-2',
-        title: 'Everyday Contributions',
-        type: 'ongoing',
-        amount: 85000,
-        contributors: 8,
-        expiresAt: 'No expiry',
-        status: 'active',
-      },
-    ],
-    []
-  );
+  const handleShareLink = async (link: PaymentLink) => {
+    try {
+      const message = `
+${link.event_name || link.description || 'Support My Baby Journey'}
+
+${link.custom_message || ''}
+
+View and contribute: ${link.shareable_url || `https://app.gidinest.com/pay/${link.token}`}
+
+Pay to:
+Account: ${link.account_number}
+Bank: ${link.bank_name}
+Reference: PL-${link.token}-{timestamp}
+      `.trim();
+
+      await Share.share({
+        message,
+        title: link.event_name || 'Gift Registry',
+      });
+    } catch (error) {
+      console.error('Error sharing link:', error);
+    }
+  };
+
+  const formatExpiryDate = (expiresAt?: string) => {
+    if (!expiresAt) return 'No expiry';
+    const date = new Date(expiresAt);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
 
   const bottomContentPadding = useMemo(
     () => insets.bottom + (Platform.OS === 'ios' ? 120 : 108),
@@ -167,23 +183,28 @@ export default function GiftRegistryScreen() {
           </View>
 
           {/* My Registries */}
-          {myRegistries.length > 0 && (
+          {linksLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#EC4899" />
+              <RNText style={[styles.loadingText, { color: palette.textSecondary }]}>
+                Loading your registries...
+              </RNText>
+            </View>
+          ) : links.length > 0 ? (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <RNText style={[styles.sectionTitle, { color: palette.text }]}>
                   My registries
                 </RNText>
-                <Pressable onPress={() => {}}>
-                  <RNText style={[styles.viewAllText, { color: '#EC4899' }]}>
-                    View all
-                  </RNText>
-                </Pressable>
+                <RNText style={[styles.viewAllText, { color: '#EC4899' }]}>
+                  {links.length} {links.length === 1 ? 'link' : 'links'}
+                </RNText>
               </View>
 
               <View style={styles.registriesList}>
-                {myRegistries.map((registry) => (
+                {links.slice(0, 5).map((link) => (
                   <Pressable
-                    key={registry.id}
+                    key={link.id}
                     style={[
                       styles.registryCard,
                       {
@@ -191,12 +212,12 @@ export default function GiftRegistryScreen() {
                         borderColor: separatorColor,
                       },
                     ]}
-                    onPress={() => {}}
+                    onPress={() => handleShareLink(link)}
                   >
                     <View style={styles.registryHeader}>
                       <View style={styles.registryInfo}>
                         <RNText style={[styles.registryTitle, { color: palette.text }]}>
-                          {registry.title}
+                          {link.event_name || link.description || 'Gift Registry'}
                         </RNText>
                         <View style={styles.registryMeta}>
                           <View style={styles.registryMetaItem}>
@@ -206,7 +227,7 @@ export default function GiftRegistryScreen() {
                               color={palette.textSecondary}
                             />
                             <RNText style={[styles.registryMetaText, { color: palette.textSecondary }]}>
-                              {registry.contributors} contributors
+                              {link.contribution_count} contributor{link.contribution_count !== 1 ? 's' : ''}
                             </RNText>
                           </View>
                           <View style={styles.registryMetaItem}>
@@ -216,23 +237,28 @@ export default function GiftRegistryScreen() {
                               color={palette.textSecondary}
                             />
                             <RNText style={[styles.registryMetaText, { color: palette.textSecondary }]}>
-                              {registry.expiresAt}
+                              {formatExpiryDate(link.expires_at)}
                             </RNText>
                           </View>
                         </View>
                       </View>
-                      <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
+                      <MaterialCommunityIcons name="share-variant" size={20} color="#EC4899" />
                     </View>
                     <View style={[styles.registryStats, { borderTopColor: separatorColor }]}>
                       <RNText style={[styles.registryAmount, { color: '#EC4899' }]}>
-                        {formatCurrency(registry.amount)} received
+                        {formatCurrency(link.total_raised)} received
                       </RNText>
+                      {link.target_amount && link.target_amount > 0 && (
+                        <RNText style={[styles.registryTarget, { color: palette.textSecondary }]}>
+                          of {formatCurrency(link.target_amount)}
+                        </RNText>
+                      )}
                     </View>
                   </Pressable>
                 ))}
               </View>
             </View>
-          )}
+          ) : null}
 
           {/* Create Registry Button */}
           <Pressable
@@ -405,6 +431,21 @@ const styles = StyleSheet.create({
   registryAmount: {
     fontFamily: 'NeuzeitGro-Bold',
     fontSize: 15,
+  },
+  registryTarget: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 13,
+    marginTop: theme.spacing.xs / 2,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl * 2,
+    gap: theme.spacing.md,
+  },
+  loadingText: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 14,
   },
   createButton: {
     flexDirection: 'row',
