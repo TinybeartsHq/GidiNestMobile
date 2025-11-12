@@ -14,6 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
+import { useWallet } from '../../hooks/useWallet';
 
 const formatCurrency = (value: number) => {
   return `₦${value.toLocaleString('en-NG', {
@@ -27,11 +28,17 @@ export default function SavingsScreen() {
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { wallet, goals: apiGoals, getWalletBalance } = useWallet();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
   const [selectedTab, setSelectedTab] = useState<'goals' | 'transactions'>('goals');
+
+  // Fetch wallet balance on mount
+  useEffect(() => {
+    getWalletBalance();
+  }, []);
 
   useEffect(() => {
     Animated.parallel([
@@ -55,8 +62,18 @@ export default function SavingsScreen() {
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
   const separatorColor = isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(148, 163, 184, 0.2)';
 
-  const walletBalance = 850000;
-  const totalSavingsGoals = 1550000;
+  // Use real wallet balance or default to 0
+  const walletBalance = wallet?.balance ?? 0;
+
+  // Calculate total from real goals - ensure we parse amounts as numbers
+  const totalSavingsGoals = apiGoals && apiGoals.length > 0
+    ? apiGoals.reduce((sum, goal) => {
+        const amount = typeof goal.current_amount === 'string'
+          ? parseFloat(goal.current_amount)
+          : goal.current_amount;
+        return sum + (isNaN(amount) ? 0 : amount);
+      }, 0)
+    : 0;
 
   const savingsGoals = useMemo(
     () => [
@@ -183,21 +200,9 @@ export default function SavingsScreen() {
   const handleQuickAction = (actionKey: string) => {
     switch (actionKey) {
       case 'withdraw':
-        // Navigate to PIN auth screen
+        // Navigate to WithdrawScreen
         // @ts-ignore
-        navigation.navigate('PINAuth', {
-          amount: 50000, // This would come from user input
-          category: 'withdrawal',
-          onSuccess: () => {
-            console.log('Withdrawal successful!');
-            // Process withdrawal here
-            navigation.goBack();
-          },
-          onCancel: () => {
-            console.log('Withdrawal cancelled');
-            navigation.goBack();
-          },
-        });
+        navigation.navigate('Withdraw');
         break;
       case 'deposit':
         // @ts-ignore

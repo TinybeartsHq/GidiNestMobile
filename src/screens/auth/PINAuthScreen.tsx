@@ -7,6 +7,7 @@ import {
   Animated,
   Pressable,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,11 +26,20 @@ import {
 const PIN_LENGTH = 4;
 const MAX_ATTEMPTS = 3;
 
+interface WithdrawalDetails {
+  accountName: string;
+  accountNumber: string;
+  bankName: string;
+  amount: number;
+  isVerified: boolean;
+}
+
 interface PINAuthScreenProps {
-  onSuccess?: () => void;
+  onSuccess?: (pin?: string) => void;
   onCancel?: () => void;
   amount?: number;
   category?: string;
+  withdrawalDetails?: WithdrawalDetails;
 }
 
 export default function PINAuthScreen(props?: PINAuthScreenProps) {
@@ -42,6 +52,7 @@ export default function PINAuthScreen(props?: PINAuthScreenProps) {
   const onCancel = props?.onCancel || params.onCancel;
   const amount = props?.amount || params.amount;
   const category = props?.category || params.category || 'withdrawal';
+  const withdrawalDetails = params.withdrawalDetails;
   const { palette, mode } = useThemeMode();
   const isDark = mode === 'dark';
 
@@ -84,46 +95,15 @@ export default function PINAuthScreen(props?: PINAuthScreenProps) {
   };
 
   const verifyPin = () => {
-    // TODO: Verify against stored PIN from SecureStore
-    const storedPin = '1234'; // This should come from SecureStore
-
-    if (pin === storedPin) {
-      // Success!
-      setTimeout(() => {
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          navigation.goBack();
-        }
-      }, 200);
-    } else {
-      // Wrong PIN
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-
-      if (newAttempts >= MAX_ATTEMPTS) {
-        setError('Too many attempts. Operation cancelled.');
-        Vibration.vibrate([0, 100, 100, 100]);
-        setTimeout(() => {
-          if (onCancel) {
-            onCancel();
-          } else {
-            navigation.goBack();
-          }
-        }, 2000);
+    // For withdrawal transactions, the PIN is verified by the backend
+    // Just pass it through to the onSuccess callback
+    setTimeout(() => {
+      if (onSuccess) {
+        onSuccess(pin);
       } else {
-        setError(`Incorrect PIN (${newAttempts}/${MAX_ATTEMPTS})`);
-        Vibration.vibrate([0, 50, 50, 50]);
-        shake();
-
-        setTimeout(() => {
-          setPin('');
-          if (newAttempts < MAX_ATTEMPTS) {
-            setError('');
-          }
-        }, 1000);
+        navigation.goBack();
       }
-    }
+    }, 200);
   };
 
   const shake = () => {
@@ -188,24 +168,28 @@ export default function PINAuthScreen(props?: PINAuthScreenProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Pressable
-              style={[styles.closeButton, { backgroundColor: featureTint }]}
-              onPress={() => {
-                if (onCancel) {
-                  onCancel();
-                } else {
-                  navigation.goBack();
-                }
-              }}
-            >
-              <MaterialCommunityIcons name="close" size={20} color={palette.text} />
-            </Pressable>
-          </View>
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable
+            style={[styles.closeButton, { backgroundColor: featureTint }]}
+            onPress={() => {
+              if (onCancel) {
+                onCancel();
+              } else {
+                navigation.goBack();
+              }
+            }}
+          >
+            <MaterialCommunityIcons name="close" size={20} color={palette.text} />
+          </Pressable>
+        </View>
 
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Main Content */}
           <View style={styles.mainContent}>
             <View
@@ -216,7 +200,7 @@ export default function PINAuthScreen(props?: PINAuthScreenProps) {
             >
               <MaterialCommunityIcons
                 name="lock"
-                size={40}
+                size={32}
                 color={isDark ? '#FCA5A5' : '#EF4444'}
               />
             </View>
@@ -228,6 +212,45 @@ export default function PINAuthScreen(props?: PINAuthScreenProps) {
                 {formatCurrency(amount)}
               </RNText>
             )}
+
+            {/* Withdrawal Details */}
+            {withdrawalDetails && (
+              <View style={[styles.detailsCard, { backgroundColor: featureTint }]}>
+                {!withdrawalDetails.isVerified && (
+                  <View style={[styles.warningBadge, { backgroundColor: '#F9731620' }]}>
+                    <MaterialCommunityIcons name="alert-circle" size={14} color="#F97316" />
+                    <RNText style={[styles.warningText, { color: '#F97316' }]}>
+                      Unverified Account
+                    </RNText>
+                  </View>
+                )}
+                <View style={styles.detailRow}>
+                  <RNText style={[styles.detailLabel, { color: palette.textSecondary }]}>
+                    Send to
+                  </RNText>
+                  <RNText style={[styles.detailValue, { color: palette.text }]}>
+                    {withdrawalDetails.accountName}
+                  </RNText>
+                </View>
+                <View style={styles.detailRow}>
+                  <RNText style={[styles.detailLabel, { color: palette.textSecondary }]}>
+                    Account
+                  </RNText>
+                  <RNText style={[styles.detailValue, { color: palette.text }]}>
+                    {withdrawalDetails.accountNumber}
+                  </RNText>
+                </View>
+                <View style={styles.detailRow}>
+                  <RNText style={[styles.detailLabel, { color: palette.textSecondary }]}>
+                    Bank
+                  </RNText>
+                  <RNText style={[styles.detailValue, { color: palette.text }]}>
+                    {withdrawalDetails.bankName}
+                  </RNText>
+                </View>
+              </View>
+            )}
+
             <RNText style={[styles.subtitle, { color: palette.textSecondary }]}>
               {biometricAvailable
                 ? `Use ${biometricLabel} or enter your PIN`
@@ -249,17 +272,17 @@ export default function PINAuthScreen(props?: PINAuthScreenProps) {
               </RNText>
             ) : null}
           </Animated.View>
+        </ScrollView>
 
-          {/* NumPad */}
-          <View style={styles.numPadContainer}>
-            <NumPad
-              onNumberPress={handleNumberPress}
-              onBackspace={handleBackspace}
-              onBiometric={handleBiometric}
-              showBiometric={biometricAvailable}
-              biometricIcon={biometricIcon}
-            />
-          </View>
+        {/* NumPad - Fixed at bottom */}
+        <View style={styles.numPadContainer}>
+          <NumPad
+            onNumberPress={handleNumberPress}
+            onBackspace={handleBackspace}
+            onBiometric={handleBiometric}
+            showBiometric={biometricAvailable}
+            biometricIcon={biometricIcon}
+          />
         </View>
       </SafeAreaView>
     </View>
@@ -273,15 +296,11 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: theme.spacing.xl,
-    paddingTop: Platform.OS === 'ios' ? theme.spacing.lg : theme.spacing.md,
-    paddingBottom: theme.spacing.xl * 2,
-  },
   header: {
+    paddingHorizontal: theme.spacing.xl,
+    paddingTop: Platform.OS === 'ios' ? 50 : 16,
+    paddingBottom: theme.spacing.sm,
     alignItems: 'flex-end',
-    marginBottom: theme.spacing.xs,
   },
   closeButton: {
     width: 40,
@@ -290,46 +309,89 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: theme.spacing.xl,
+    paddingBottom: theme.spacing.lg,
+  },
   mainContent: {
     alignItems: 'center',
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.xl,
+    gap: theme.spacing.xs,
   },
   iconWrapper: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
   },
   title: {
     fontFamily: 'NeuzeitGro-Bold',
-    fontSize: 24,
+    fontSize: 20,
     textAlign: 'center',
   },
   amount: {
     fontFamily: 'NeuzeitGro-ExtraBold',
-    fontSize: 32,
+    fontSize: 28,
     textAlign: 'center',
   },
   subtitle: {
     fontFamily: 'NeuzeitGro-Regular',
-    fontSize: 15,
+    fontSize: 14,
     textAlign: 'center',
   },
   inputContainer: {
     alignItems: 'center',
-    gap: theme.spacing.lg,
-    marginTop: theme.spacing.xl * 2,
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.lg,
   },
   errorText: {
     fontFamily: 'NeuzeitGro-SemiBold',
-    fontSize: 14,
+    fontSize: 13,
     textAlign: 'center',
   },
   numPadContainer: {
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
+  },
+  detailsCard: {
+    width: '100%',
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    gap: theme.spacing.xs,
+    marginTop: theme.spacing.sm,
+  },
+  warningBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 'auto',
+    gap: theme.spacing.xs,
+    paddingVertical: 4,
+    paddingHorizontal: theme.spacing.sm,
+    borderRadius: theme.borderRadius.sm,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+  },
+  warningText: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 11,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  detailLabel: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 13,
+  },
+  detailValue: {
+    fontFamily: 'NeuzeitGro-SemiBold',
+    fontSize: 13,
+    maxWidth: '60%',
+    textAlign: 'right',
   },
 });

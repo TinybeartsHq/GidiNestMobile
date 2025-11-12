@@ -18,6 +18,8 @@ import PostpartumCareScreen from '../screens/dashboard/PostpartumCareScreen';
 import TransactionDetailsScreen from '../screens/transactions/TransactionDetailsScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 import DepositScreen from '../screens/savings/DepositScreen';
+import WithdrawScreen from '../screens/savings/WithdrawScreen';
+import WithdrawalStatusScreen from '../screens/savings/WithdrawalStatusScreen';
 import FundGoalScreen from '../screens/savings/FundGoalScreen';
 import CreateGoalScreen from '../screens/savings/CreateGoalScreen';
 import BankTransferDetailsScreen from '../screens/savings/BankTransferDetailsScreen';
@@ -89,6 +91,8 @@ export default function AppNavigator() {
         <Stack.Screen name="TransactionDetails" component={TransactionDetailsScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Deposit" component={DepositScreen} />
+        <Stack.Screen name="Withdraw" component={WithdrawScreen} />
+        <Stack.Screen name="WithdrawalStatus" component={WithdrawalStatusScreen} />
         <Stack.Screen name="FundGoal" component={FundGoalScreen} />
         <Stack.Screen name="CreateGoal" component={CreateGoalScreen} />
         <Stack.Screen name="BankTransferDetails" component={BankTransferDetailsScreen} />

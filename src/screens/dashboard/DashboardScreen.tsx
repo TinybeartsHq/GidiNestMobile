@@ -19,6 +19,7 @@ import { useThemeMode } from '../../theme/ThemeProvider';
 import type { RootState } from '../../redux/types';
 import { theme } from '../../theme/theme';
 import { useAuthV2 } from '../../hooks/useAuthV2';
+import { useWallet } from '../../hooks/useWallet';
 import RestrictionBanner from '../../components/RestrictionBanner';
 
 const formatCurrency = (value: number, currency: string) => {
@@ -36,22 +37,37 @@ export default function DashboardScreen() {
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
   const { user: userV2, isRestricted } = useAuthV2();
+  const { wallet, goals, walletNotFound, loading: walletLoading, getWalletBalance } = useWallet();
+
+  // Fetch wallet balance on mount
+  useEffect(() => {
+    getWalletBalance();
+  }, []);
 
   const sectionAnimations = useRef(
     Array.from({ length: 6 }, () => new Animated.Value(0))
   ).current;
 
   const analytics = useMemo(() => {
-    if (!user || !('dashboardAnalytics' in user)) {
-      return {
-        totalSavingsBalance: 0,
-        activeGoals: 0,
-        monthlyContributions: 0,
-        currency: '₦',
-      };
-    }
-    return user.dashboardAnalytics;
-  }, [user]);
+    // Use real wallet balance if available, otherwise use mock data
+    const totalSavingsBalance = wallet?.balance ?? 0;
+    const activeGoals = goals?.length ?? 0;
+
+    // Calculate monthly contributions from goals - ensure we parse amounts as numbers
+    const monthlyContributions = goals?.reduce((sum, goal) => {
+      const amount = typeof goal.current_amount === 'string'
+        ? parseFloat(goal.current_amount)
+        : goal.current_amount;
+      return sum + (isNaN(amount) ? 0 : amount);
+    }, 0) ?? 0;
+
+    return {
+      totalSavingsBalance,
+      activeGoals,
+      monthlyContributions,
+      currency: wallet?.currency ?? '₦',
+    };
+  }, [wallet, goals]);
 
   const [showBalance, setShowBalance] = useState(true);
 
@@ -316,13 +332,13 @@ export default function DashboardScreen() {
 
             {/* Stats Chips */}
             <View style={styles.statsRow}>
-              <View style={[styles.statChip, { backgroundColor: featureTint }]}>
+              <View key="goals-stat" style={[styles.statChip, { backgroundColor: featureTint }]}>
                 <MaterialCommunityIcons name="target" size={14} color={palette.text} />
                 <RNText style={[styles.statChipText, { color: palette.text }]}>
                   {analytics.activeGoals} Goals
                 </RNText>
               </View>
-              <View style={[styles.statChip, { backgroundColor: featureTint }]}>
+              <View key="monthly-stat" style={[styles.statChip, { backgroundColor: featureTint }]}>
                 <MaterialCommunityIcons name="calendar-month" size={14} color={palette.text} />
                 <RNText style={[styles.statChipText, { color: palette.text }]}>
                   {formatCurrency(analytics.monthlyContributions, analytics.currency)}/mo
@@ -375,10 +391,12 @@ export default function DashboardScreen() {
               </View>
               <View style={styles.kycContent}>
                 <RNText style={[styles.kycTitle, { color: palette.text }]}>
-                  Verify your account
+                  {walletNotFound ? 'Activate Your Wallet' : 'Verify your account'}
                 </RNText>
                 <RNText style={[styles.kycSubtitle, { color: palette.textSecondary }]}>
-                  Complete KYC for higher limits
+                  {walletNotFound
+                    ? 'Verify your BVN or NIN to start saving and transacting'
+                    : 'Complete KYC for higher limits'}
                 </RNText>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,12 +7,17 @@ import {
   Text as RNText,
   Platform,
   TextInput,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeMode } from '../../theme/ThemeProvider';
 import { theme } from '../../theme/theme';
+import { useWallet } from '../../hooks/useWallet';
+import RestrictionBanner from '../../components/RestrictionBanner';
+import { useAuthV2 } from '../../hooks/useAuthV2';
 
 const formatCurrency = (value: number) => {
   return `₦${value.toLocaleString('en-NG', {
@@ -40,115 +45,63 @@ export default function TransactionsScreen() {
   const isDark = mode === 'dark';
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { transactions: apiTransactions, loading, getTransactionHistory } = useWallet();
+  const { isRestricted } = useAuthV2();
 
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch transactions on mount
+  useEffect(() => {
+    getTransactionHistory();
+  }, []);
+
+  // Handle pull-to-refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await getTransactionHistory();
+    setRefreshing(false);
+  };
 
   const cardBackground = isDark ? palette.card : '#FFFFFF';
   const featureTint = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(100, 116, 139, 0.06)';
   const separatorColor = isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(148, 163, 184, 0.2)';
 
+  // Transform API transactions to match UI format
   const transactions = useMemo(() => {
-    const now = new Date();
-    const today = new Date(now);
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const threeDaysAgo = new Date(now);
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    const fiveDaysAgo = new Date(now);
-    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+    if (!apiTransactions || apiTransactions.length === 0) {
+      return [];
+    }
 
-    return [
-      {
-        id: 'tx-1',
-        title: 'Hospital Bills Fund',
-        description: 'Saved for delivery',
-        amount: 50000,
-        type: 'income' as const,
-        category: 'savings',
-        icon: 'hospital-building',
-        date: today,
-        color: isDark ? '#FCA5A5' : '#DC2626',
-      },
-      {
-        id: 'tx-2',
-        title: 'Baby Essentials',
-        description: 'Added to supplies fund',
-        amount: 35000,
-        type: 'income' as const,
-        category: 'savings',
-        icon: 'baby-carriage',
-        date: today,
-        color: isDark ? '#FDE68A' : '#D97706',
-      },
-      {
-        id: 'tx-3',
-        title: 'Bought Baby Clothes',
-        description: 'Newborn outfits',
-        amount: -15000,
-        type: 'expense' as const,
-        category: 'baby-items',
-        icon: 'tshirt-crew',
-        date: yesterday,
-        color: isDark ? '#FCA5A5' : '#DC2626',
-      },
-      {
-        id: 'tx-4',
-        title: 'Postpartum Fund',
-        description: 'Recovery support',
-        amount: 30000,
-        type: 'income' as const,
-        category: 'savings',
-        icon: 'heart-pulse',
-        date: yesterday,
-        color: isDark ? '#C4B5FD' : '#7C3AED',
-      },
-      {
-        id: 'tx-5',
-        title: 'Prenatal Vitamins',
-        description: 'Pharmacy purchase',
-        amount: -8500,
-        type: 'expense' as const,
-        category: 'medical',
-        icon: 'pill',
-        date: threeDaysAgo,
-        color: isDark ? '#FCA5A5' : '#DC2626',
-      },
-      {
-        id: 'tx-6',
-        title: 'Emergency Fund',
-        description: 'Medical safety net',
-        amount: 25000,
-        type: 'income' as const,
-        category: 'savings',
-        icon: 'shield-heart',
-        date: threeDaysAgo,
-        color: isDark ? '#6EE7B7' : '#059669',
-      },
-      {
-        id: 'tx-7',
-        title: 'Auto-save',
-        description: 'Hospital delivery fund',
-        amount: 20000,
-        type: 'income' as const,
-        category: 'savings',
-        icon: 'clock-check',
-        date: fiveDaysAgo,
-        color: isDark ? '#93C5FD' : '#2563EB',
-      },
-      {
-        id: 'tx-8',
-        title: 'Baby Registry Items',
-        description: 'Nursery essentials',
-        amount: -12000,
-        type: 'expense' as const,
-        category: 'baby-items',
-        icon: 'cart',
-        date: fiveDaysAgo,
-        color: isDark ? '#FCA5A5' : '#DC2626',
-      },
-    ];
-  }, [isDark]);
+    return apiTransactions.map((tx) => {
+      const isCredit = tx.transaction_type === 'credit';
+      // Ensure amount is parsed as a number (API might return as string)
+      const numericAmount = typeof tx.amount === 'string' ? parseFloat(tx.amount) : tx.amount;
+      const amount = isCredit ? numericAmount : -numericAmount;
+
+      // Determine icon based on description or type
+      let icon = isCredit ? 'arrow-down' : 'arrow-up';
+      if (tx.sender_name) icon = 'bank-transfer';
+      if (tx.description.toLowerCase().includes('hospital')) icon = 'hospital-building';
+      if (tx.description.toLowerCase().includes('baby')) icon = 'baby-carriage';
+      if (tx.description.toLowerCase().includes('withdrawal')) icon = 'cash';
+
+      return {
+        id: tx.id,
+        title: tx.sender_name || (isCredit ? 'Money Received' : 'Withdrawal'),
+        description: tx.description,
+        amount,
+        type: isCredit ? ('income' as const) : ('expense' as const),
+        category: 'transaction',
+        icon,
+        date: new Date(tx.created_at),
+        color: isCredit
+          ? (isDark ? '#6EE7B7' : '#059669')
+          : (isDark ? '#FCA5A5' : '#DC2626'),
+      };
+    });
+  }, [apiTransactions, isDark]);
 
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
@@ -366,8 +319,43 @@ export default function TransactionsScreen() {
         <ScrollView
           contentContainerStyle={[styles.content, { paddingBottom: bottomContentPadding }]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.primary} />
+          }
         >
-          {Object.entries(groupedTransactions).map(([dateKey, txs]) => (
+          {/* Restriction Banner */}
+          {isRestricted && <RestrictionBanner style={{ marginBottom: theme.spacing.md }} />}
+
+          {/* Loading State - Only show when initially loading */}
+          {loading && !refreshing && transactions.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={palette.primary} />
+              <RNText style={[styles.loadingText, { color: palette.textSecondary }]}>
+                Loading transactions...
+              </RNText>
+            </View>
+          ) : !loading && transactions.length === 0 ? (
+            /* Empty State - No transactions from API */
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons name="inbox-outline" size={64} color={palette.textSecondary} />
+              <RNText style={[styles.emptyTitle, { color: palette.text }]}>No Transactions Yet</RNText>
+              <RNText style={[styles.emptySubtitle, { color: palette.textSecondary }]}>
+                Your transaction history will appear here
+              </RNText>
+            </View>
+          ) : filteredTransactions.length === 0 ? (
+            /* Empty State - Filtered/Search results empty */
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons name="magnify" size={64} color={palette.textSecondary} />
+              <RNText style={[styles.emptyTitle, { color: palette.text }]}>No Matches Found</RNText>
+              <RNText style={[styles.emptySubtitle, { color: palette.textSecondary }]}>
+                Try adjusting your filters or search query
+              </RNText>
+            </View>
+          ) : (
+            /* Transactions List */
+            <>
+              {Object.entries(groupedTransactions).map(([dateKey, txs]) => (
             <View key={dateKey} style={styles.dateGroup}>
               <RNText style={[styles.dateHeader, { color: palette.textSecondary }]}>
                 {dateKey}
@@ -423,15 +411,8 @@ export default function TransactionsScreen() {
                 ))}
               </View>
             </View>
-          ))}
-
-          {filteredTransactions.length === 0 && (
-            <View style={styles.emptyState}>
-              <MaterialCommunityIcons name="file-document-outline" size={48} color={palette.textSecondary} />
-              <RNText style={[styles.emptyText, { color: palette.textSecondary }]}>
-                No transactions found
-              </RNText>
-            </View>
+              ))}
+            </>
           )}
         </ScrollView>
       </SafeAreaView>
@@ -606,6 +587,32 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: 'NeuzeitGro-Regular',
     fontSize: 14,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl * 3,
+    gap: theme.spacing.md,
+  },
+  loadingText: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 14,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl * 3,
+    gap: theme.spacing.sm,
+  },
+  emptyTitle: {
+    fontFamily: 'NeuzeitGro-Bold',
+    fontSize: 18,
+    marginTop: theme.spacing.md,
+  },
+  emptySubtitle: {
+    fontFamily: 'NeuzeitGro-Regular',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 
